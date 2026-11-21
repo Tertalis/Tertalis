@@ -1,6 +1,15 @@
 ACTANT - SHARED WORK INDEX
 ==========================
 
+TERTALIS COORDINATION THREAD - CURRENT BOOTSTRAP (2026-11-21)
+-----------------------------------------------------------
+Current cross-repository coordination conversation recovery checkpoint:
+ai-workflow/handoff/tertalis-coordination-thread.txt.
+This records live destination repository verification, shared-system decisions,
+and next reconciliation steps; it does not itself migrate the old mail/protocol
+authority or unfreeze implementers. Read alongside the historical migration
+handoff and the migration plan below.
+
 TERTALIS MIGRATION - EMERGENCY RESTART (2026-11-14)
 ---------------------------------------------------
 The migration conversation was retired because desktop/web/Android may
