@@ -19,20 +19,38 @@ messages, ownership, and continuation point.
 02. COORDINATION REF
 --------------------
 
-02.01. The canonical coordination ref is:
+02.01. The single canonical coordination repository and ref are:
 
-    actant-integration
+    Tertalis/Tertalis
+    integration
+
+The former EnterTheNameHere/Turnix actant-integration ref is a historical
+pre-migration coordination location. Do not use it for new operational reads
+or writes. All current coordination operations explicitly target the canonical
+repository and integration branch.
 
 02.02. Working branch and coordination ref are different concepts. A conversation
 may implement on another branch while reading and publishing coordination material
 on the canonical coordination ref.
 
-02.03. Every coordination read/write MUST explicitly use the coordination ref. Do
-not inherit the current implementation branch implicitly.
+02.03. Every coordination read/write MUST explicitly use the canonical
+repository and ref. Do not infer it from the current working repository,
+its integration branch, or its default branch. Every participating repository
+has its own integration development branch; this does NOT make those branches
+separate live coordination authorities.
 
-02.04. Using actant-integration as the coordination ref does not make Integration
-the semantic owner of all coordination material. Ownership is declared per
-workstream/document/message.
+02.04. Using Tertalis/Tertalis integration as the coordination location does
+not make the platform implementation team the semantic owner of all
+coordination material. Ownership is declared per workstream/document/message.
+
+02.05. The participating repositories currently include Tertalis/Tertalis,
+Tertalis/Tertalis-Completion, Tertalis/Tertalis-Experiment-Runner,
+Tertalis/Tertalis-AI-Buddy, Tertalis/Tertalis-Materialization-Test, and
+EnterTheNameHere/Evil-Analysis. Their own integration branches are for
+development; main is the default branch. The user reports main protection
+configured on the Tertalis organization repositories. Evil Analysis remains
+private and main protection rules are currently not enforced there. Do not
+change that repository's visibility or claim its main is protected.
 
 03. WORKSTREAMS
 ---------------
