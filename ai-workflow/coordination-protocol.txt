@@ -1,11 +1,11 @@
-ACTANT COORDINATION PROTOCOL
+TERTALIS COORDINATION PROTOCOL
 ============================
 
 01. PURPOSE
 -----------
 
 01.01. Multiple independently contextualized AI conversations may work on different
-parts of Actant without sharing live conversational context.
+parts of Tertalis and participating applications without sharing live conversational context.
 
 01.02. This coordination system provides repository-resident routing, state, mail,
 and continuation information so those conversations can coordinate without relying
@@ -51,6 +51,27 @@ development; main is the default branch. The user reports main protection
 configured on the Tertalis organization repositories. Evil Analysis remains
 private and main protection rules are currently not enforced there. Do not
 change that repository's visibility or claim its main is protected.
+
+02.06. Every assistant, implementer, integrator, coordinator and design
+conversation participating in Tertalis work MUST read and follow ai-workflow
+before acting. A repository-local AGENTS.md and minimal ai-workflow/index.txt
+are discovery entrypoints, not alternative copies of canonical operational
+authority. Their repository-specific content may describe their own repository,
+its Tertalis dependency, and how to reach this canonical coordination ref.
+
+02.07. Only Tertalis/Tertalis integration stores active cross-repository
+communication, inbox, state, workstream registry and routing. Application
+repositories MUST NOT carry operational inbox/mail copies or discover other
+applications through locally copied registries. To locate another application,
+read the canonical Tertalis registry rather than baking a sibling repository
+location into application guidance.
+
+02.08. Copies of historical coordination data in imported platform snapshots
+must never be interpreted as live inboxes. Remove copied operational mail
+from application development trees after a preservation and ownership inventory;
+do not discard unique history or mistakenly delete the canonical originals.
+The same rule applies when importing platform updates into applications:
+exclude operational mail/state and provide only a minimal routing entrypoint.
 
 03. WORKSTREAMS
 ---------------
