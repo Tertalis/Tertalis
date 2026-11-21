@@ -11,15 +11,18 @@ use the same setup scripts, dependencies and verification procedures.
 2. Read [SETUP.md](SETUP.md) to prepare the actual local environment.
 3. Read [design/index.txt](design/index.txt) for platform design orientation
    and the relevant area documents for the task.
-4. Read [ai-workflow/index.txt](ai-workflow/index.txt) from the canonical
-   coordination ref and [ai-workflow/coordination-protocol.txt](ai-workflow/coordination-protocol.txt).
+4. Read [ai-workflow/index.txt](ai-workflow/index.txt) and
+   [ai-workflow/coordination-protocol.txt](ai-workflow/coordination-protocol.txt)
+   from the explicit canonical `Tertalis/Tertalis` `integration` ref.
+   Every implementer, integrator, coordinator and design thread is bound
+   by this shared protocol.
 5. Follow the protocol's start/resume barrier: identify the workstream,
    working branch, STATE, HANDOFF, inbox, ownership and tested baseline.
 6. Check the currently authorized work and any migration/freeze instructions.
    Do not acquire ownership or change scope by inference.
 
-The coordination ref during the current migration is
-`actant-integration`; the user must explicitly authorize changing it.
+The canonical coordination repository/ref is `Tertalis/Tertalis` on
+`integration`, as explicitly confirmed by the user on 2026-11-21.
 A working branch and the coordination ref are different concepts.
 Do not assume a new session retains past conversations.
 
