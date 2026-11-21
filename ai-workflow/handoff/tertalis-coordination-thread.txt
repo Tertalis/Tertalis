@@ -1,0 +1,64 @@
+TERTALIS CROSS-REPOSITORY COORDINATION THREAD HANDOFF
+====================================================
+Recorded: 2026-11-21
+Status: current conversation bootstrap checkpoint; observational, not a blanket authorization for work
+Owner/purpose: User-directed coordination of Tertalis repositories, the shared ai-workflow system, platform inbox, implementers, integrators, assignments, and recoverable handoffs.
+Working read ref at bootstrap: Tertalis/Tertalis branch integration.
+Historical coordination ref in current protocol: actant-integration (legacy name; do not assume protocol migration complete).
+
+WHY THIS HANDOFF EXISTS
+-----------------------
+User restarted coordination in a fresh ChatGPT conversation because previous conversation histories were not consistently visible across Android/web/desktop. Preserve durable decisions, state and next steps here and update after material changes. Do not rely on conversation memory alone.
+
+BOOTSTRAP EVIDENCE READ
+-----------------------
+Read directly from Tertalis/Tertalis, branch integration:
+  ai-workflow/index.txt
+  ai-workflow/handoff/tertalis-migration-thread.txt
+  ai-workflow/knowledge/tertalis-migration-plan.txt
+  ai-workflow/coordination-protocol.txt (opening sections)
+The migration handoff has 2026-11-19 decision updates but is not an exhaustive ledger of subsequent migration operations. Older sections in it are superseded by later appended decisions; review the end of each document before acting.
+The ai-workflow/index.txt still describes Actant and refers to the canonical actant-integration ref. The live copies read in this bootstrap reside on Tertalis/Tertalis integration. Verify any proposed authority transition before editing protocol, inbox, or other workstream records.
+
+VERIFIED DESTINATION REPOSITORIES (2026-11-21)
+----------------------------------------------
+Tertalis/Tertalis — public, default main
+Tertalis/Tertalis-Completion — public, default main
+Tertalis/Tertalis-Experiment-Runner — public, default main
+Tertalis/Tertalis-AI-Buddy — public, default main
+Tertalis/Tertalis-Materialization-Test — public, default main
+EnterTheNameHere/Evil-Analysis — private, default main
+GitHub connector reported read/write/admin permissions for all six. This does not establish that each source tree, tests, protection policy, or copy of coordination records has been verified.
+
+DECISIONS CARRIED FORWARD
+-------------------------
+- Project identity: Tertalis; Turnix and Actant are historical.
+- One shared cooperative ai-workflow across participating repos, including personal Evil Analysis; source copies of coordination records are not automatically independent live authorities.
+- Development Coordinator, Integrator and Implementer are separate roles. Do not conflate Coordinator with architectural Orchestrator.
+- Applications may pin an accepted platform revision; integrators must reject an incompatible/unverified target without advancing accepted dependency.
+- Historical Git ancestry preserved. User personally performs branch deletions; deliberately destructive/failure tests need explicit authorization.
+- Migration freeze was still recorded in the last handoff; do not silently revive workers or claim release of old ownership.
+- Current protocol continues to document the file-based mail, state and ownership system. GitHub-native replacement/cutover was not confirmed by files read here. Never assume concurrent contradictory authorities.
+- Migration history includes source/document identifier rename, app separation and organization repositories; consult migration plan and live refs, not dated next-step instructions alone.
+
+CURRENT THREAD TASK
+-------------------
+Coordinate repositories, platform inbox, ai-workflow, cross-thread instructions, implementers and integration so separate threads can work independently with compatible shared controls. User specifically requests FREQUENT durable checkpoints and handoffs to enable another fresh conversation after unexpected thread or history problems.
+
+BOOTSTRAP WORK COMPLETED
+------------------------
+- Opened and inspected cited ai-workflow files on integration.
+- Verified six destination repo metadata records.
+- Identified outdated Actant naming and ref conventions in shared index/protocol, without rewriting them.
+- Created this observational checkpoint. No implementation work, source edits, branch mutation, repository transfer, worker dispatch or test run.
+
+NEXT STEPS (NOT YET EXECUTED)
+-----------------------------
+1. Inspect freshest repository heads, canonical coordination authority and current platform inbox/ownership state; reconcile the actual November 15-21 migration progress against the older migration handoff.
+2. Agree/publish a current coordination anchor and mechanism for update cadence; do not silently switch canonical ref or inbox transport.
+3. Bring index/handoff/protocol up to date in separately reviewed, bounded steps.
+4. Resume assignments only upon user direction and after ownership/compatibility checks.
+
+CONTINUATION RULE
+-----------------
+In any replacement conversation: read this file and the migration plan, verify live refs/heads, report discrepancies, and continue from most recent durable evidence. Update this handoff after meaningful decisions or verified state changes, distinguishing user reports from independent verification.
