@@ -62,3 +62,28 @@ NEXT STEPS (NOT YET EXECUTED)
 CONTINUATION RULE
 -----------------
 In any replacement conversation: read this file and the migration plan, verify live refs/heads, report discrepancies, and continue from most recent durable evidence. Update this handoff after meaningful decisions or verified state changes, distinguishing user reports from independent verification.
+
+
+USER DECISION AND CANONICAL REF UPDATE - 2026-11-21
+----------------------------------------------------
+User explicitly confirmed Tertalis/Tertalis integration is the replacement
+for EnterTheNameHere/Turnix actant-integration as the single shared
+canonical ai-workflow coordination branch. The latter is historical,
+not the current operational target. Each participating repository has
+an integration development branch and default main. These repository-
+local integration refs are NOT additional shared mailbox authorities.
+GitHub branch search independently found integration in all six named
+repositories; metadata confirmed main as default in each. The user
+reports main protection on Tertalis organization repositories. The
+private EnterTheNameHere/Evil-Analysis main is unprotected/non-enforced
+under its current GitHub rules situation. User deliberately elects to
+keep Evil Analysis private for now; do not change visibility.
+
+Canonical protocol section 02 updated in commit a0f1af6.
+Shared index updated in commit 1b672dd.
+These edits change coordination instructions only, not source,
+repository branch refs, protection rules, mail history, or ownership
+registrations. Historical material retains old names where appropriate.
+
+NEXT: inspect actual canonical inbox, workstream registration, state
+and migration status before dispatching any new implementation.
