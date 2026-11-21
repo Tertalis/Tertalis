@@ -1,6 +1,23 @@
 ACTANT - SHARED WORK INDEX
 ==========================
 
+CANONICAL COORDINATION LOCATION - USER CONFIRMED 2026-11-21
+-----------------------------------------------------------
+All new shared ai-workflow operational reads/writes target the explicit
+repository Tertalis/Tertalis, branch integration. The previous
+EnterTheNameHere/Turnix actant-integration ref is historical.
+Every participating repository also has its own integration DEVELOPMENT
+branch, but these are not separate active ai-workflow inbox authorities.
+main is the default branch in all six verified repositories; user reports
+main protected on the five Tertalis organization repositories.
+EnterTheNameHere/Evil-Analysis remains private with main protection rules
+currently unenforced, by user choice. Do not change its visibility.
+Canonical protocol: ai-workflow/coordination-protocol.txt section 02.
+Current recovery handoff: ai-workflow/handoff/tertalis-coordination-thread.txt.
+Older Actant/actant-integration references below describe historical
+workstream topology or have not yet been individually migrated; they do
+NOT override this current coordination location.
+
 TERTALIS COORDINATION THREAD - CURRENT BOOTSTRAP (2026-11-21)
 -----------------------------------------------------------
 Current cross-repository coordination conversation recovery checkpoint:
