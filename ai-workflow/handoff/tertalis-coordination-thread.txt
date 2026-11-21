@@ -87,3 +87,52 @@ registrations. Historical material retains old names where appropriate.
 
 NEXT: inspect actual canonical inbox, workstream registration, state
 and migration status before dispatching any new implementation.
+
+
+SHARED AI-WORKFLOW REPOSITORY BOUNDARY - 2026-11-21
+----------------------------------------------------
+User specified the following binding policy:
+- Every assistant, designer, implementer, integrator and coordinator reads
+  and obeys a single ai-workflow protocol.
+- Tertalis/Tertalis integration alone hosts operational inbox/messages,
+  shared state, routing and registry of participating application locations.
+- Every application knows its own repository and Tertalis proper only;
+  application-level guidance does not list sibling application locations.
+- Local ai-workflow may differ only as a minimal routing/discovery stub.
+  An application's integration ref is for development, not active mail.
+- Do not create or copy live operational inbox files into applications.
+  Imported historical mail is not operational. Preserve unique history
+  while removing replicated operational files after inventory.
+
+EXECUTED / VERIFIED
+-------------------
+Canonical protocol section 02 extended: 1306edb.
+Each of five application ai-workflow/index.txt replaced in-place with
+a short local routing stub explicitly targeting Tertalis/Tertalis integration:
+Completion f46b459, Experiment Runner 2aa04ed, AI Buddy efaf5a5,
+Materialization Test 620d835, Evil Analysis 8b01122.
+Each of five application AGENTS.md updated with canonical links and
+mandatory shared-workflow boundary:
+Completion 6bd9847, Experiment Runner 7a6afbb, AI Buddy b51d575,
+Materialization Test ae5aed5, Evil Analysis c39a2f8.
+Platform AGENTS.md stale actant-integration reference corrected at 1ba31f9.
+All edits made on respective integration branches. No main, visibility,
+branch rules, executable source, application code or tests changed.
+Do not claim this completes migration of all old coordination files.
+GitHub search for 'inbox' in Completion returned no code-search matches;
+that is NOT proof of absence of copied inbox files.
+
+OUTSTANDING
+-----------
+1. Enumerate existing ai-workflow/mail and other copied operational state
+   in each application repository using a full tree inventory. The current
+   GitHub connector search did not supply an exhaustive path list.
+2. Preserve distinct historical records if any, then remove operational
+   inbox/mail copies from application current trees in bounded reviewed
+   changes. Do not delete Tertalis canonical records or Git history.
+3. Check remaining links in application README/SETUP/other local files
+   for stale old Turnix coordination location; reconcile separately.
+4. Consider future platform snapshot imports: exclude operational
+   coordination data from application copies at the integration boundary.
+5. Verify central registry of application repository locations and current
+   workstream ownership/mail before dispatching work.
