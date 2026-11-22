@@ -834,3 +834,44 @@ resolution in design/index and the canonical index, without forcing
 full-corpus reading; separately reconcile Application source accepted
 SHAs and historical migration acceptance evidence when needed.
 Keep the file-backed ai-workflow and no-automatic-source-import rules.
+
+USER-APPROVED PLATFORM DOCS/DESIGN EXCLUSION - 2026-11-22
+----------------------------------------------------------
+User explicitly agreed that authoritative framework design/docs should
+exist only under Tertalis proper, not as stale platform-source copies
+in Application repositories. Pre-change recursive Git tree inventory:
+each Application had 146 tracked docs/ files and 8 tracked design/
+files (154 per repo; 770 total). No unique Application-specific
+paths existed in those root trees. Relevant AppPack-specific docs,
+AGENTS.md, README.md and SETUP.md were outside deletion scope.
+
+Executed safe fast-forward integration commits on five Applications,
+removing ONLY those root docs/ and design/ tracked files:
+  Tertalis/Tertalis-Completion: d314ea876ffdbb6380a94794b1c806e76e8bd47d
+  Tertalis/Tertalis-Experiment-Runner: f07d0861ad5acadf993fbc03fc9a02823d898af1
+  Tertalis/Tertalis-AI-Buddy: 8b36737e6afe877e561ec299c43a9e2d6fb58f39
+  Tertalis/Tertalis-Materialization-Test: acd2f3ac2a758362ae7a8e7c0487091bf61dca89
+  EnterTheNameHere/Evil-Analysis: 7ea14767598efb862477c93f3afb5435c57b05b3.
+Validated each newly built full Git tree before moving the ref
+with expected HEAD and force=false. Rechecked each repository and
+confirmed zero root docs/ and design/ tracked files, with local
+ai-workflow/index.txt preserved. Canonical Tertalis/Tertalis retained
+its 146 docs/ and 14 design/ files untouched. Historical files
+remain recoverable from Application Git history.
+
+Prevent recurrence: canonical coordination protocol section 12.19
+updated at d069a2cdc1c47c9dca9a97ff96d55e1bf5067689;
+each Application local ai-workflow/index.txt updated with a
+no-copied-docs/design import guard:
+  Completion 17efd7b, Experiment Runner e0b5042,
+  AI Buddy 46b797c, Materialization Test 3611852,
+  Evil Analysis 7aad042.
+Canonical coordination STATE records result at ed271d2.
+No code, AppPack, accepted platform runtime SHA, root setup,
+Tertalis authoritative documents, main branches, release version,
+automated CI gate or runtime tests changed.
+
+NEXT: ensure root Application README/AGENTS or setup instructions
+do not refer to their removed local design/ or docs/ as a path to
+read. Future document authority remains current Tertalis source;
+this does not license automatic Application platform upgrades.
