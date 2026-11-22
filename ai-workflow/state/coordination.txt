@@ -90,11 +90,26 @@ removed files and the canonical archive retains all four moved mails.
 No main branch or code was changed. File-backed canonical mail remains
 authoritative, and GitHub-native coordination remains secondary.
 
-Application directories ai-workflow/state/, assignments/, handoff/,
-knowledge/ and other copied old ai-workflow instructions remain and are
-NOT separate operational authority. These require a separate content,
-ownership and historical-preservation review before cleanup. Do not
-blindly copy canonical mail back during any authorized platform adoption.
+A further recursive tree and SHA inventory established no unique
+non-index ai-workflow paths in any Application. Most copied blobs
+were identical to canonical; migration plan/handoff older snapshots
+were prefixes of canonical records, with some divergent historical
+workstream STATE revisions preserved in each Application's Git
+ancestry. A bounded second cleanup removed the remaining 800 copied
+non-mail ai-workflow files on the five Application integration branches:
+Completion a35fde1 (162), Experiment Runner 4293927 (152),
+AI Buddy 13cee5b (162), Materialization Test 6bb66c9 (162),
+Evil Analysis 67fde17 (162). All untruncated post-cleanup trees
+had EXACTLY ai-workflow/index.txt under ai-workflow/.
+In total 1,564 copied coordination files were removed in the two
+cleanup passes. Canonical files and Git history were preserved.
+
+The canonical protocol section 12.18 now requires exact one-path
+ai-workflow allowlist verification of each future authorized
+Application platform import; noncompliance blocks acceptance.
+Application local index stubs also carry this rule. No platform
+source adoption is authorized merely by introducing this guard.
+Do not copy canonical ai-workflow back during platform adoption.
 
 The canonical Git tree currently contains 18 substantive inbox
 messages across integration (5), AI Buddy (4), Completion (4),
@@ -128,9 +143,8 @@ PROVIDES
 
 REQUIRES / CONTINUATION
 -----------------------
-1. Review remaining copied Application state/assignments/handoff/
-   knowledge, distinguishing source-local unique information and
-   historical evidence before removing redundant operational copies.
+1. Maintain the single-local-index invariant during every authorized
+   Application platform-source adoption; verify exact committed trees.
 2. Review the CURRENT canonical inboxes and active assignment state,
    distinguish pending requests from superseded historical reports.
 3. Reconcile individual Application accepted platform SHAs and
