@@ -301,3 +301,63 @@ migration action, tests and acceptance). Integrators should be able to
 identify needed Application changes from the authoritative shared
 ai-workflow evidence. No new automation, implementation or release
 versioning is authorized by this note.
+
+
+AUDIT AND RETIREMENT OF AUTOMATIC PLATFORM IMPORT - 2026-11-22
+---------------------------------------------------------------
+USER REQUEST: analyze existing change-notification/integration procedure and
+retire any implementer-start rule that automatically copies the newest Tertalis
+platform files into Applications, because doing so can bring incompatibility.
+
+CONFIRMED SOURCE CONFLICTS (canonical integration branch):
+- ai-workflow/coordination-protocol.txt old 12.04 said to compare current
+  Integration and synchronize when applicable before substantive implementation.
+- old 12.12 instructed standard complete CURRENT platform import; old 12.13
+  described platform files being imported downstream.
+- ai-workflow/actant-integration-sharing.txt old 08.01 and 08.05 required
+  complete/latest platform import as the normal default.
+- The older 12.02/12.09 described long-lived App branches as substitutes for
+  independent Application repositories; this is now obsolete.
+- Start/finish barrier 08/09 already supports checking current state, precise
+  refs, mail and evidence, and should remain mandatory. Checking for advances
+  does NOT itself grant adoption authority.
+- Shared change acceptance and consumer adoption are distinct; platform
+  change notifications need affected contracts/consumers, adaptation,
+  exact SHA and verification evidence.
+
+EXECUTED DOC CORRECTIONS
+------------------------
+Canonical ai-workflow/coordination-protocol.txt on Tertalis/Tertalis integration:
+commit 5fe175168bcb977ed798e3f8eb8ce7ee85c39c3a
+Revised 12.02/12.04/12.09/12.12/12.13/12.14:
+- Each App retains its last accepted exact platform SHA; no official release
+  version, no latest-source start/resume copying.
+- Current platform changes are inspected, not automatically adopted.
+- A bounded, assigned Integrator can target a named newer SHA; adapt App
+  source and verify full compatible combination before acceptance.
+- On incompatible/untested results, preserve old accepted pairing.
+- Platform source projection must be coherent; preserve App-owned files,
+  local ai-workflow routing stub, and exclude operational mail/state/index.
+- Accepted platform changes SHOULD include a consumer-impact notification.
+
+ai-workflow/actant-integration-sharing.txt on same ref:
+commit 5a187743d3ea2698aecb1331684609387f66ad9c
+Revised 08.01 and 08.05 to retire default latest-platform imports and
+explicitly align synchronization/notification with assigned Integrator scope.
+
+No application source, setup script, working branch, main, inbox contents,
+tests, existing accepted platform pins, or repository settings modified.
+The changes clarify protocol going forward. Historical assignments, mail,
+state and old handoffs may still describe prior complete-platform imports:
+those are evidence of previous tasks, NOT a standing future instruction.
+Additional stale references in other documents and exact current pinned
+Application SHAs require independent audit; these two corrections do not
+constitute exhaustive repository-wide replacement.
+
+NEXT
+----
+Inspect remaining live AI agent instructions and state/assignments for
+conflicting active sync requirements. Establish a compact shared-platform
+change-impact notice template or process using existing mail/STATE/knowledge
+mechanisms without duplicating authority. Then read each Application's actual
+accepted baseline before assigning any integration.
