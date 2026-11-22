@@ -366,12 +366,12 @@ branches may be short-lived and retired after their contributions are accepted.
 This is a logical ownership arrangement; an implementer may branch from the
 appropriate application or Integration baseline. No task requires its own branch.
 
-12.02. Application development currently uses long-lived branches but may later
-move to separate repositories. State and assignments SHOULD name repository,
-branch/ref and baseline commit explicitly when ambiguity matters. The coordination
-ref remains actant-integration in the current repository until deliberately moved;
-do not assume repository separation has already occurred. Preserve an interface-
-and-dependency-based workflow that survives future repository boundaries.
+12.02. Applications now have separate repositories with their own integration
+development branches. State and assignments SHOULD name the exact repository,
+branch/ref, Application commit and accepted Tertalis platform commit SHA.
+The single canonical coordination repository/ref is Tertalis/Tertalis integration
+(section 02); neither an Application's integration branch nor its copied
+platform files establish a second coordination authority.
 
 12.03. At every start/resume barrier, read the canonical coordination index,
 protocol, workstream STATE/HANDOFF and current inbox BEFORE continuing previously
@@ -383,14 +383,21 @@ inform the user, describing the mismatch and asking for direction. Relevant
 nonconflicting updates may be incorporated without unnecessary interruption.
 Do not silently ignore an unexpected Integration instruction.
 
-12.04. After reconciling authority, compare the workstream's known base commit
-against current Integration. If Integration advanced, inspect what changed and
-synchronize safely when applicable before substantive implementation. Rebase,
-merge, cherry-pick or equivalent explicit synchronization are possible; no one
-operation is mandated. Do not overwrite uncommitted work, rewrite shared
-published history, force-push, or resolve substantive conflicts without proper
-authority. If synchronization cannot safely proceed, preserve work and report
-the blocker. Record the tested baseline and resulting ref.
+12.04. After reconciling authority, verify the Application's ACTUAL platform
+source projection against its recorded last accepted Tertalis commit SHA.
+Check current canonical platform changes and impact notifications for relevant
+requirements, but NEVER synchronize merely because Tertalis integration advanced,
+a new session began, or normal Application implementation is starting.
+The Application remains on its accepted platform baseline unless an explicitly
+assigned Integrator has authority to attempt adoption of a named target SHA.
+Normal Application implementers report relevant platform changes and adaptation
+needs; they do not import them on their own initiative. A separately authorized
+integration may use safe Git synchronization, preserving Application-exclusive
+files and excluding canonical ai-workflow operational inbox/state and registry.
+Never overwrite uncommitted work, rewrite published history, force-push, or
+resolve substantive conflicts without authority. If verification or integration
+fails, keep the previously accepted combination unchanged and record the
+blocker and exact refs.
 
 12.05. Repeat relevant coordination and synchronization checks at meaningful
 handoff, delegation, integration and long-running implementation boundaries;
@@ -420,12 +427,12 @@ that Application's workstream and branch, NOT to actant-integration. An AppPack
 does not become platform code by being accepted, tested by Integration, or
 currently located under a directory called first-party.
 
-12.09. Treat long-lived Application branches as stand-ins for INDEPENDENT
-APPLICATION REPOSITORIES. This is a temporary source-hosting convenience, not
-permission to include AppPackages in the Actant platform distribution. A later
-move to separate repositories should change transport/hosting, not semantic
-ownership, contracts, or the direction of dependency: Applications consume
-Actant; Actant does not consume or vendor an Application's exclusive contents.
+12.09. Applications have independent repositories. Their existing pinned,
+combined Tertalis platform source snapshots are a TEMPORARY development and
+distribution arrangement, not permission to include AppPackages in the Tertalis
+platform distribution. Repository separation does not change semantic ownership,
+contracts or the direction of dependency: Applications consume Tertalis;
+Tertalis does not consume or vendor Application-exclusive contents.
 
 12.10. Classification is based on intended audience and semantic ownership:
 functionality intended to be available to arbitrary Actant Applications belongs
@@ -444,32 +451,43 @@ copy Application-exclusive files/tests into actant-integration. Only reviewed
 platform-owned changes may be integrated into the platform source. A successful
 Application review can accept the Application ON ITS OWN REF.
 
-12.12. STANDARD APPLICATION PLATFORM IMPORT. Each Application branch normally
-contains the complete current Actant platform source from actant-integration:
-backend/, reusable first-party/ Packs (including the llama.cpp driver), and
-other platform-owned tooling/tests needed by that revision, alongside its own
-separately owned AppPackage. The branch is a combined self-contained working
-checkout, not an AppPackage-only snapshot requiring a separately installed
-platform. Synchronize the platform as the standard development procedure and
-record its exact baseline/ref. Copying platform files does not transfer their
-semantic ownership to the Application.
+12.12. PINNED APPLICATION PLATFORM BASELINE. An Application currently retains
+a complete Tertalis platform source snapshot corresponding to its LAST ACCEPTED
+platform commit SHA, alongside the Application's separately owned source.
+The combined checkout is a temporary packaging/development method, not a
+requirement to track the latest Tertalis implementation. The platform SHA is
+an exact implementation identity, NOT a formal release version; no semver
+compatibility system is assumed. Ordinary work MUST NOT import current platform
+files as a startup step or automatically advance this baseline. Copying platform
+files never transfers their semantic ownership to the Application.
 
-12.13. Synchronization is asymmetric in OWNERSHIP, not platform completeness.
-Application branches import platform content downstream while retaining their
-exclusive AppPackage files. Git operations may be selective to safely achieve
-that complete platform baseline; "selective" is not permission to routinely
-import only a subset of Actant. Prevent historical Integration-side AppPackage
-deletions from propagating into Application-owned files. Integration must not
-merge whole Application branches upstream. A genuinely reusable fix discovered
-by an Application is reviewed as a platform-only patch before downstream
-adoption. Record source refs, ownership and tests.
+12.13. AUTHORIZED PLATFORM ADOPTION is a distinct, bounded Integrator task.
+It identifies an exact target Tertalis SHA, inspects changes and consumer
+impact since the Application's accepted platform SHA, adapts Application code
+where necessary, and verifies a complete compatible target combination.
+The source snapshot should represent the COMPLETE selected Tertalis baseline,
+not a misleading mix of platform revisions; Git operations may be selective
+only to achieve that consistent target. The Integrator must preserve
+Application-exclusive source and local routing instructions, and must NOT
+copy canonical ai-workflow operational inbox, mail, state or registry into the
+Application. Prevent platform-side AppPackage deletions from propagating into
+Application-owned files. An incompatible/untested attempt is explicitly FAILED
+and does not advance the last accepted Application dependency. A genuinely
+reusable fix discovered by an Application is separately reviewed as a
+platform-owned patch before an authorized downstream adoption. Record exact
+source refs, ownership, adaptation, tests and acceptance evidence.
 
 12.14. Platform tests exercise platform contracts and Application tests remain
-with their Application. Test the combined Application branch with its imported
-platform by default. Separate-root external composition may be tested as an
-additional compatibility scenario, but is NOT a prerequisite for the current
-branch-based development model. Integration records Application acceptance by
-its own ref without importing exclusive source into the platform.
+with their Application. Test the combined Application checkout at the actual
+accepted (or explicitly targeted integration-candidate) Tertalis SHA.
+Separate-root composition may be tested independently, but is not required
+merely to continue the current combined-checkout model. Record acceptance by
+exact Application and Tertalis commits; no Application-exclusive source is
+imported upstream. Newly accepted shared platform changes SHOULD publish a
+consumer-facing impact notice: accepted Tertalis SHA, changed contracts or
+behaviors, potentially affected consumers, required adaptation, validation
+evidence and known limitations. Notices enable planning; they do not initiate
+automatic Application upgrades.
 
 12.15. The historically integrated EX-01/02 source at be092fd is an ownership
 mismatch, not a precedent. Preserve the accepted behavior/evidence and the EX
