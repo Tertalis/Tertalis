@@ -436,3 +436,33 @@ NEXT
 3. Determine which shared platform changes currently have consumers
    needing impact notifications; do not fabricate notices from old
    historical completed tasks or automatically dispatch workers.
+
+
+ACTIVE README/SETUP COORDINATION LINK AUDIT - 2026-11-22
+--------------------------------------------------------
+After revising AGENTS and the canonical message/impact protocol, inspected
+all six repository root README.md and SETUP.md files for old canonical
+Turnix repository/ref references, platform-import start expectations and
+coordination pointers. Found old active references in platform README
+and five application READMEs, and in four application SETUP guides.
+No old canonical reference was found in platform SETUP or Evil Analysis
+SETUP during this scoped keyword inspection.
+
+Updated root public instructions on each repository integration branch:
+- Tertalis/Tertalis README: 565082e (correct clone URL/branch and status)
+- Completion README: 10b3883; SETUP: b158140
+- Experiment Runner README: 5e1fc17; SETUP: c0f3f14
+- AI Buddy README: 34cfc75; SETUP: 38381e2
+- Materialization Test README: 9503630; SETUP: f4e2b03
+- Evil Analysis README: cf2bc78
+All now point active canonical coordination instructions to
+Tertalis/Tertalis integration rather than EnterTheNameHere/Turnix
+actant-integration. The documented existing two-stage setup scripts
+remain unchanged. No executable sources, application platform snapshots,
+default branch/main, or backend coordination cutover were modified.
+
+Outstanding scope: full-tree inventory for copied historical operational
+mail/state, existing assignments and inbox dispatch authority, and any
+non-root application docs containing old links. Old task history is not
+an active implementation mandate. The current file-backed coordination
+system remains primary; no automatic platform sync is authorized.
