@@ -29,14 +29,14 @@ not claimed. No policy bypass, live inference or private snapshot modification.
 Report:knowledge/experiment-runner-application-content-cleanup.txt.
 Scope notice:integration/inbox/2026-11-10-runner-exclude-other-app.txt;
 registry correction:integration/inbox/2026-11-10-runner-registry-restored.txt.
-Future COMPLETE SHARED platform imports MUST preserve these App-branch exclusions:
- first-party/applications/evilBirthdayAnalysis/
- tests/first_party/evilBirthdayAnalysis/
- ai-workflow/mail/evil-analysis/
- ai-workflow/state/evil-analysis.txt
-Keep the shared index registry entry for evil-analysis and its owning branch.
-Registry State/Inbox/Archive paths resolve on canonical actant-integration under
-the existing index/protocol rule, even when not present on this App branch.
+Historical source exclusion requirements for any EXPLICITLY AUTHORIZED
+future platform adoption: preserve the Experiment Runner-only application
+boundary, including no Evil Analysis application source/tests. Do NOT copy
+any active ai-workflow mail/inbox/state or full registry into this
+Application repository; only its local routing stub is operational.
+The full cross-repository workstream registry and mail/state resolve
+exclusively on Tertalis/Tertalis integration. This does NOT instruct
+implementers to adopt newer Tertalis automatically.
 Canonical Integration registry/mail/state and other Application source remain intact.
 No upstream deletion requested. Shared platform baseline70f0743/e5c693e unchanged,
 with these explicit other-Application exclusions. Integration next acknowledges
@@ -160,7 +160,8 @@ No required EX-06 work or blocking finding remains for bounded scope. R2 deliver
 archived; worker acceptance notice2026-11-08-ex06-accepted.txt acknowledged/archived2026-11-09.
 Bounded EX-06 work closed; separate user evaluation above is not source work. No further source/package assigned.
 Refresh canonical barriers before later user work, preserve App ownership and
-future latest COMPLETE platform synchronization. EX-01..05/shared acceptance intact.
+the last accepted Tertalis platform SHA; platform adoption requires a separately
+authorized, verified Integrator task. EX-01..05/shared acceptance intact.
 
 Historical objective: EX-05 accepted / bounded assignment complete
 ---------------------------------------------------------------
