@@ -265,3 +265,39 @@ its location or ownership.
 
 FOLLOW-UP: future dedicated PackManager design workstream after explicit
 authorization, with bounded design checkpoint before implementing.
+
+
+CURRENT DEVELOPMENT REVISION AND SHARED-CODE INTEGRATION - 2026-11-22
+--------------------------------------------------------------------
+User clarified the CURRENT model distinct from future PackManager
+versioned distribution:
+
+- No official Tertalis release version or semver compatibility selection
+  exists yet. A specific Git commit SHA identifies the exact platform
+  implementation an Application currently has.
+- Current shared-platform development discovers functionality in
+  Applications that is useful across Applications and warrants moving
+  into Tertalis proper. This is an explicit shared-ownership/design
+  evaluation, NOT automatic transfer of all Application code.
+- Once shared changes are made and accepted in Tertalis proper, the
+  affected Application implementation may need adaptation to the
+  changed platform interfaces/behavior before it can use the newer
+  Tertalis revision.
+- Platform changes must be recorded and communicated with sufficient
+  impact/contract context for Application implementers, coordinators
+  and integrators to carry out that adaptation.
+- Application integration compares exact platform revisions and
+  verifies the resulting platform+Application combination. Do NOT
+  substitute future tpV/version-range language as if implemented.
+  Adoption of an unverified/incompatible revision is not accepted;
+  previously accepted working combination remains intact.
+- Future distribution versioning/PackManager compatibility selection
+  remains a design goal only, not the current implementation model.
+
+NEXT COORDINATION DESIGN CONCERN:
+Define a clear change-notification/impact record for accepted shared
+platform changes (source SHA, contracts and behavior affected, consumers,
+migration action, tests and acceptance). Integrators should be able to
+identify needed Application changes from the authoritative shared
+ai-workflow evidence. No new automation, implementation or release
+versioning is authorized by this note.
