@@ -121,6 +121,33 @@ design/index c4f5eb9, platform AGENTS 87254d4, and all five
 Application AGENTS instructions updated. No design content
 bulk migration or source synchronization was performed.
 
+PLATFORM DESIGN/DOCS REMOVED FROM APPLICATION TREES — 2026-11-22
+-----------------------------------------------------------------
+With user approval, removed ONLY root design/ (8 files) and docs/
+(146 files) from EACH of five Application integration branches:
+Completion d314ea876ffdbb6380a94794b1c806e76e8bd47d,
+Experiment Runner f07d0861ad5acadf993fbc03fc9a02823d898af1,
+AI Buddy 8b36737e6afe877e561ec299c43a9e2d6fb58f39,
+Materialization Test acd2f3ac2a758362ae7a8e7c0487091bf61dca89,
+Evil Analysis 7ea14767598efb862477c93f3afb5435c57b05b3.
+Total: 770 stale platform-document file copies retired from
+current Application integration trees. Historical Git content remains.
+Canonical Tertalis docs/ (146 files) and design/ (14 files)
+were NOT modified or removed. Application-owned documentation under
+AppPack paths and root AGENTS/README/SETUP remain untouched.
+Post-change Git tree checks verified each Application has zero
+tracked docs/ and design/ blobs and still has solely
+ai-workflow/index.txt under ai-workflow/. No runtime/source upgrade.
+
+Canonical coordination protocol 12.19 at d069a2c requires future
+platform import/adoption to exclude canonical docs/, design/
+and ai-workflow/ (preserving the local routing index); root copies
+block acceptance. All five local routing indexes were updated
+with corresponding guard instructions. Latest authoritative
+platform design/docs continue to be read from Tertalis/Tertalis
+independently of accepted Application runtime SHA.
+No CI-enforced automated import guard is yet implemented.
+
 OPEN COORDINATION
 -----------------
 Global migration/development freeze remains in recorded instructions;
