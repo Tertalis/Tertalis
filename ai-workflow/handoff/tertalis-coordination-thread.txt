@@ -735,3 +735,45 @@ accepted platform baseline). Inspect the specific outstanding supervised
 ER-04C request with user before taking action. Consider a repository
 CI/verification script for the one-index rule when implementation is
 authorized, and review any obsolete current-facing index passages.
+
+
+APPLICATION SOURCE-SHA BASELINE RECONCILIATION AUDIT - 2026-11-22
+----------------------------------------------------------------
+User requested continued reconciliation of each Application's actual
+platform source baseline against shared acceptance records.
+Read integration HEADs and full Git trees from Tertalis/Tertalis and all
+five Application repositories. All trees were untruncated.
+Observed HEADs were:
+Tertalis/Tertalis ec4347d; Completion 6a8997a;
+Experiment Runner 5d99b91; AI Buddy cbbf38c;
+Materialization Test a227090; Evil Analysis 5ea5272.
+These are full repository HEADs, NOT independently pinned Tertalis SHA.
+
+EXACT SHA COMPARISON:
+214 shared implementation paths under backend/, reusable first-party/
+(excluding applications), shared tests, scripts and tools were present
+with identical content SHA in all five Application trees and canonical
+Tertalis/Tertalis integration. This implementation projection also
+matched both historical Tertalis dddd1db and f30c393 commits; exact
+platform SHA cannot be deduced uniquely from content equality.
+Earlier source at 70f0743/e5c693e differs on 81/214 shared files.
+
+BROADER CHECK:
+411 canonical non-ai-workflow/non-root-AGENTS/README/SETUP blobs:
+Completion, Runner, AI Buddy, Evil Analysis each 338 identical,
+15 missing and 58 differing; Materialization 337 identical,
+15 missing and 59 differing including .gitignore.
+Major divergence lies in design/docs: app trees retain old
+ACTANT_/TURNIX_ docs and lack newer TERTALIS_ docs and design indices.
+This is a documentary authority risk despite executable source match.
+No combined executable acceptance test or automatic platform sync run.
+
+Detailed immutable evidence now in:
+ai-workflow/knowledge/application-platform-baseline-audit-2026-11-22.txt
+(commit 645185b9).
+Canonical coordination STATE updated in commit cadbe9a.
+Next: distinguish platform source content projection vs exact accepted
+platform SHA vs actual application behavior acceptance; agree authorized
+Integrator treatment of platform documentation and local old designs.
+Do NOT change Application source or docs without separate authorized
+integration scope. The coordinated migration freeze remains recorded.
