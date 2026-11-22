@@ -1,0 +1,99 @@
+TERTALIS APPLICATION PLATFORM SOURCE BASELINE AUDIT
+===================================================
+Date: 2026-11-22
+Scope: read-only Git blob comparison across Tertalis/Tertalis integration
+and the five Application integration development branches.
+Status: evidence; NOT a new version pin, release, sync approval, or test acceptance.
+
+REPOSITORY HEADS OBSERVED
+-------------------------
+Platform Tertalis/Tertalis:
+ec4347db19b7772e682382df0cfd7432b8f476b2
+Completion:
+6a8997a5f9cf1bed861379bb0fda1fd444f5348f
+Experiment Runner:
+5d99b91fcbd244033bac6c9a812f09c3f86d029f
+AI Buddy:
+cbbf38c88ef96b3ababecdce17713cf8099c4955
+Materialization Test:
+a227090dfd83cac94ce95b502f680f590fbf3785
+Evil Analysis:
+5ea5272c7e27d8b022c34d6ad59ba35aae64a553
+These are full repository HEADS at audit, NOT the embedded Tertalis
+platform revision identifiers or evidence of Application test acceptance.
+
+CHECK 1: SHARED IMPLEMENTATION PROJECTION
+-----------------------------------------
+Selected all 214 blobs from canonical Tertalis integration under:
+  backend/
+  first-party/ EXCEPT first-party/applications/
+  tests/backend/
+  tests/first_party/llmDrivers/
+  scripts/
+  tools/
+All five Application integration trees contained the same 214 paths
+with EXACT matching Git blob SHA values. No missing/differing file in
+that selected implementation projection.
+
+As an additional check, the same 214 paths matched Tertalis historical
+commits dddd1dbac890eddb73651b1320859be5093539ad and
+f30c393f7d723f9f8a897ff74a054aed1a1e4cd4, whereas the pre-migration
+70f074384e6c3fca032f48eb02af02f4a7f8ed7f and
+e5c693e3ebfa742de55fb965af3f1081f1312d41 had only 133/214 matching
+blobs on those same path sets (81 differing). Therefore source content
+matching DOES NOT uniquely identify a particular commit SHA. We cannot
+infer a new accepted platform SHA solely from those file hashes.
+
+CHECK 2: BROADER REPOSITORY PROJECTION
+--------------------------------------
+Compared 411 Tertalis canonical blobs after excluding canonical
+ai-workflow/, its root AGENTS.md/README.md/SETUP.md, and platform-side
+known Application-exclusive first-party/apps and targeted App tests.
+This broad set additionally covers design/docs, Git and root support
+files not all included in the initial 214-file implementation set.
+
+Each of Completion, Experiment Runner, AI Buddy and Evil Analysis:
+  338 same-path identical blobs;
+  15 canonical paths missing locally;
+  58 same-path blob differences.
+Materialization Test:
+  337 identical;
+  15 missing;
+  59 differing (including .gitignore).
+These numbers are a scoped file projection, not a full distribution
+conformance test. Most differences are under design/ and docs/.
+Common absent paths include design/architecture.txt, design/index.txt,
+design/platform.txt, design/area/flow.txt, the MemoryValueSystem area
+and working checkpoint, plus renamed TERTALIS design/document filenames.
+Application snapshots also have historical ACTANT_/TURNIX_ counterparts.
+
+This distinction is material: matching executable/shared source does
+not mean every embedded platform documentation and authoritative design
+file is current. Local legacy design files may be misleading. All
+agents should read canonical Tertalis design/docs on the appropriate
+source ref when defining or changing platform contracts; do NOT assume
+Application-local copied design/docs have the latest authority.
+
+STATUS / ACCEPTANCE
+-------------------
+The canonical Application workstream STATE files still contain
+historical migration and acceptance SHA descriptions, some identifying
+older Turnix/Actant working branches. These are useful historical
+evidence but not proof of an exact current new-repo Tertalis dependency
+commit. Repository HEAD incorporates local documentation/coordination
+commits; it is not itself a platform SHA.
+No actual tests, runtime execution, user-facing model runs or end-to-end
+Application compatibility checks were performed in this audit.
+No platform or Application source/docs were changed.
+
+NEXT
+----
+- Record accepted platform SHA separately from Application HEAD in
+  canonical workstream STATE once independently established.
+- Decide how authorized Integrators verify a coherent selected Tertalis
+  platform projection, including design/docs and excluding canonical
+  ai-workflow/, Application-exclusive paths and local routing index.
+- Do not automatically import the newer Tertalis source on ordinary
+  implementer start/resume, and do not elevate a guessed SHA to acceptance.
+- Avoid stale Application-local design docs taking precedence over
+  authoritative Tertalis documentation.
