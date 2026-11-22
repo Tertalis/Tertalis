@@ -37,12 +37,11 @@ your configured package index. The repository includes the supported embedded
 Python archives; the default is Python 3.15.0b4, with an explicit Python
 3.14.6 fallback.
 
-The repository is currently hosted under its former GitHub name while the
-Tertalis migration is in progress. To inspect the current development branch:
+To inspect the current Tertalis development branch:
 
 ```powershell
-git clone --branch actant-integration https://github.com/EnterTheNameHere/Turnix.git
-cd Turnix
+git clone --branch integration https://github.com/Tertalis/Tertalis.git
+cd Tertalis
 .\setup.bat
 ```
 
@@ -99,8 +98,7 @@ README/SETUP instructions for its actual requirements.
 Development presently centers on Windows and repository-local embedded Python.
 The platform is evolving and changes may be breaking. A protected `main`
 branch is intended to present accepted repository work; that does not by
-itself mean a stable product release. At the time of this document, the
-Tertalis migration is still being completed on `actant-integration`.
+itself mean a stable product release. The shared development and coordination branch is `integration`.
 
 ## Future direction
 
