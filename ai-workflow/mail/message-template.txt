@@ -1,4 +1,4 @@
-ACTANT COORDINATION MESSAGE TEMPLATE
+TERTALIS COORDINATION MESSAGE TEMPLATE
 ====================================
 
 FROM
@@ -33,3 +33,34 @@ REPORT BACK
 
 NOTES
 <optional non-goals, acceptance criteria, verified/unverified status, limitations, rejected assumptions, or context which must survive chat loss>
+
+SHARED PLATFORM CHANGE NOTICE (when applicable)
+------------------------------------------------
+Use the existing FROM/TO/SUBJECT/STATUS/CONTEXT fields above. An
+accepted shared-platform change with possible Application impact should
+also state, either here or in a single linked knowledge record:
+
+ACCEPTED TERTALIS SHA
+<exact commit for the accepted platform implementation>
+
+CHANGE / CONTRACT IMPACT
+<changed capability, interface, behavior, requirements, guarantees;
+ distinguish verified facts from potential effects>
+
+POTENTIALLY AFFECTED CONSUMER
+<this recipient and why it might be affected, or uncertainty>
+
+ADAPTATION / INVESTIGATION
+<what the Application implementer/Integrator should examine or change;
+ explicitly state UNKNOWN when impact is not established>
+
+VERIFICATION AND LIMITS
+<tests/evidence at exact refs, untested boundaries>
+
+AUTHORITY
+<notification only: no Application platform SHA changes or automatic
+ synchronization unless a separately authorized Integrator accepts it>
+
+When notifying multiple consumers, send recipient-specific addressed
+messages and link shared evidence rather than copying a mutable
+application-location registry or separate authoritative state.
