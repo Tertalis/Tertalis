@@ -1,72 +1,116 @@
-ACTANT COORDINATION SYSTEM STATE
-================================
-
-IDENTITY
---------
+TERTALIS SHARED COORDINATION SYSTEM — CURRENT STATE
+==================================================
+Updated: 2026-11-22
 Workstream/system ID: coordination
-Purpose: durable routing, state, mail, and continuation between independently
-contextualized Actant conversations.
-Owner: shared coordination protocol; no implementation workstream owns all mail.
-Canonical coordination ref: actant-integration
+Owner: shared cooperative ai-workflow protocol; ownership of each
+       workstream/record is declared separately.
+
+AUTHORITATIVE LOCATION
+----------------------
+Repository: Tertalis/Tertalis
+Branch: integration
+Index: ai-workflow/index.txt
+Protocol: ai-workflow/coordination-protocol.txt
+Mail template: ai-workflow/mail/message-template.txt
+Board projection: ai-workflow/board.txt
+Recovery handoff: ai-workflow/handoff/tertalis-coordination-thread.txt
+
+This repository/ref is the SINGLE authoritative file-backed
+coordination location for participating Tertalis platform and
+Application repositories, including personal repositories. The
+legacy EnterTheNameHere/Turnix actant-integration ref is historical.
+All repositories have their own integration DEVELOPMENT branch; those
+branches do not become separate shared coordination authorities.
 
 CURRENT POSITION
 ----------------
-The canonical coordination protocol is materialized at:
+The file-based inbox/mail, workstream state, assignments, acceptance
+evidence and registry remain AUTHORITATIVE. GitHub-native coordination
+features may be developed as a SECONDARY, incomplete mirror until a
+separately verified, user-approved cutover. Preserve canonical files
+until then; no cutover has occurred.
 
-    ai-workflow/coordination-protocol.txt
+All assistants, designers, implementers, integrators and coordinators
+must read the current canonical ai-workflow and follow its ownership,
+admission, start/resume and finish/handoff rules. Repository-local
+AGENTS.md and slim ai-workflow/index.txt guide Application readers to
+the canonical instructions. Applications must not treat their copied
+historical mail/state as live operational coordination.
 
-Recipient-based mail roots exist for Integration, materialization-test,
-Evil-analysis, Completion, and AI Buddy, plus unassigned intake. The shared work
-index is the bootstrap registry for workstream purpose, ownership, working ref,
-state, handoff, and mailbox routing.
+Normal Application work retains the last accepted exact Tertalis
+platform Git SHA. Newer Tertalis commits may be inspected for impact
+but MUST NOT be adopted automatically at implementer start/resume.
+Only a separately authorized bounded Integrator attempts adoption
+of a named SHA, adapts affected consumer code, verifies the resulting
+Application+platform combination, and records accepted or failed
+results. A failed adoption does not change the last accepted pair.
+No formal platform release version compatibility protocol exists yet.
 
-The legacy path:
+Changes accepted in shared Tertalis source that may affect Applications
+are reported using canonical addressed mail, relevant STATE and a
+shared knowledge record if needed. Consumer impact includes exact SHA,
+changed contracts, potentially affected consumers, required adaptation
+or investigation, actual verification and limitations. Notification
+is NOT authorization to upgrade.
 
-    development/coordination/materialization-test/messages/
-
-contains historical traffic from before recipient-based routing and MUST NOT receive
-new messages.
-
-CURRENT BOARD PRESENTATION (2026-11-05)
--------------------------------------
-The shared task/step projection is ai-workflow/board.txt on actant-integration.
-Meaningful work transitions update the board alongside authoritative state and
-mail; finish/handoff replies show compact DONE/NOW/NEXT with the next actor.
-This is presentation only, not a new task/permission/acceptance authority or
-reliable indicator of active agent sessions. See protocol 09.03-09.04.
-
-PROVIDES
---------
-- one explicit coordination ref independent of implementation working branches;
-- workstream registry/bootstrap through ai-workflow/index.txt;
-- addressed recipient mailboxes;
-- unassigned intake for ownerless ideas/requirements;
-- message template at ai-workflow/mail/message-template.txt;
-- state template at ai-workflow/state/workstream-template.txt;
-- start and finish consistency barriers;
-- explicit promotion of durable conclusions from mail into STATE/KNOWLEDGE.
-
-REQUIRES
---------
-Each participating conversation must explicitly read/write coordination material on
-actant-integration rather than inheriting its working branch. Existing workstream
-STATE/HANDOFF documents should be brought toward the standardized state shape when
-they are next materially updated rather than rewritten only for formatting.
-
-CURRENT OBJECTIVE
------------------
-Use the routing system for all new coordination traffic and observe whether the
-coordination ref remains sufficient before introducing a dedicated coordination-only
-branch or repository.
+VERIFIED REPOSITORY DISTRIBUTION
+--------------------------------
+Tertalis/Tertalis
+Tertalis/Tertalis-Completion
+Tertalis/Tertalis-Experiment-Runner
+Tertalis/Tertalis-AI-Buddy
+Tertalis/Tertalis-Materialization-Test
+EnterTheNameHere/Evil-Analysis (personal, private; visibility unchanged)
+All have an integration development branch and default main.
 
 OPEN COORDINATION
 -----------------
-Completion and AI Buddy are registered as recipient-based workstreams. Both have
-exported Integration-facing pressure through addressed mail. Their application
-branches remain independent of coordination-only commits on actant-integration.
+Global migration/development freeze remains in recorded instructions;
+do not infer that earlier ownership claims expired or new implementers
+have been released to work.
 
-CONTINUATION
-------------
-Continue using canonical recipient mailboxes for cross-workstream coordination. If
-repeated use exposes routing or lifecycle ambiguity, change the protocol/state
-deliberately rather than creating another ad hoc mailbox.
+A targeted 2026-11-22 audit confirmed that ALL FIVE Application
+integration trees still contain ai-workflow/mail, state, assignments
+and handoff directories. Their local indexes were converted to routing
+stubs and active AGENTS/README/SETUP canonical pointers were updated.
+The copied operational directories remain in those trees. The available
+GitHub file-read interface did not enumerate complete recursive trees.
+Do NOT delete them until exact contents, uniqueness, provenance and
+preservation have been reviewed. No cleanup or backend cutover has
+been executed.
+
+The shared development board remains a historical projection last
+substantively reconciled 2026-11-10; it is not a live worker registry
+or comprehensive depiction of this migration. Older canonical
+Application STATE and historical assignments may retain obsolete
+branch names and synchronization instructions. The current protocol
+overrides obsolete general procedure; reconcile active workstream
+facts individually before any new assignment.
+
+PROVIDES
+--------
+- One canonical read/write target for file-backed coordination.
+- Workstream discovery, addressed inboxes, unassigned intake.
+- Start/resume and finish/handoff barriers and ownership rules.
+- Shared implementation change-impact notification and explicit
+  SHA-based Application integration acceptance.
+- Durable evidence, precise refs and continuation after thread loss.
+
+REQUIRES / CONTINUATION
+-----------------------
+1. Inventory complete historical operational coordination file trees
+   in each Application; review preservation of unique records and
+   remove active duplicated mail/state/registry only in bounded
+   authorized repository changes.
+2. Review the CURRENT canonical inboxes and active assignment state,
+   distinguish pending requests from superseded historical reports.
+3. Reconcile individual Application accepted platform SHAs and
+   repository/ref metadata without assuming Git branch HEAD equals
+   an accepted compatibility pairing.
+4. Keep the board projection current at meaningful transitions.
+5. Design/test secondary GitHub-native coordination incrementally,
+   keeping file-backed authority until explicit user-observed cutover.
+
+For recent exact operation commits and detailed recovery context read
+ai-workflow/handoff/tertalis-coordination-thread.txt. Do not interpret
+planned distribution/PackManager functionality as currently implemented.
