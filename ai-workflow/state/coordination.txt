@@ -97,6 +97,30 @@ No platform adoption or tests performed. Next check accepted
 platform revision provenance per Application and define an explicit
 documentation-authority boundary for Integrators.
 
+DOCUMENTATION AUTHORITY / RETRIEVAL — 2026-11-22
+-----------------------------------------------
+Latest authoritative Tertalis design/docs live in the Tertalis/Tertalis
+repository, independent of an Application's last accepted platform
+source SHA. Consult the current design/index.txt and canonical
+document status/identity for relevant task-specific contracts.
+Application-local older design/docs may be stale. Reading the latest
+design does not authorize a platform upgrade or imply that a pinned
+older implementation provides newer behavior.
+
+The platform's design is intended to consolidate under design/;
+existing indexed specifications in docs/ remain authoritative until
+explicit relocation/supersession. Future docs/ is intended for
+creator-facing and user-facing documentation. The documentation
+lifecycle should eventually express release applicability (added,
+changed, deprecated, removed), but official release versioning and
+annotation format are not currently established. SHA remains the
+current development evidence identity. Modular, targeted retrieval
+is preferred over loading the entire design corpus for every agent.
+Relevant changes: canonical coordination protocol aec1b8a,
+design/index c4f5eb9, platform AGENTS 87254d4, and all five
+Application AGENTS instructions updated. No design content
+bulk migration or source synchronization was performed.
+
 OPEN COORDINATION
 -----------------
 Global migration/development freeze remains in recorded instructions;
