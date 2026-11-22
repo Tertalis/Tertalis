@@ -34,9 +34,18 @@ Do not assume a new session retains past conversations.
 - Do not merge complete application branches into the platform to
   synchronize them. Read the coordination protocol for accepted import,
   review, Integrator, and application-adoption procedures.
-- `design/` contains architecture and working design material;
-  `docs/` contains indexed specifications. A document under
-  `design/working/` is not automatically authoritative.
+- Consult the current Tertalis `design/index.txt` and authoritative
+  document statuses for the design contracts relevant to the task.
+  Do not treat an Application's older copied documentation as current
+  authority; reading current docs does NOT advance that Application's
+  accepted Tertalis runtime/source SHA. Do not load the complete design
+  corpus by default when only a few contract areas matter.
+- Platform framework design is intended to reside under `design/`;
+  currently indexed specifications under `docs/` remain valid until
+  explicitly relocated. Future `docs/` is intended for creator-facing
+  and user-facing documentation. `design/working/` checkpoints are not
+  automatically authoritative; planned release-history annotations
+  are not yet an implemented version scheme.
 - An actual implementation, a design goal, and a tested capability are
   different things. Report which is supported by evidence.
 - Preserve branch/history identity and do not rewrite external history,
