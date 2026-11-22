@@ -350,6 +350,47 @@ all historical DA/IS material. Ambiguous precedence must be resolved with the
 design owner before relying on it. Coordination files do not themselves
 promote a checkpoint into a canonical specification.
 
+11.08A. CURRENT PLATFORM DOCUMENTATION AUTHORITY AND RELEVANCE.
+The latest authoritative Tertalis documentation is maintained in
+Tertalis/Tertalis, independently of each Application's accepted
+platform implementation SHA. An Application's pinned platform source
+does NOT pin the documentation that its developers must read, nor
+does reading current documentation authorize a runtime/source upgrade.
+Historically copied Application-local design/docs may be stale:
+consult the current platform design/index.txt and authoritative
+document index/status before relying on a platform contract. Resolve
+conflicts with explicitly accepted design decisions and the design
+owner, accounting for the actual implementation revision's capabilities.
+
+The intended documentation structure is platform DESIGN under design/,
+with material now under docs/ progressively reconciled into design/
+where appropriate. docs/ is intended for future creator-facing and
+user-facing documentation, which is not yet complete. This is a
+direction, NOT permission to bulk-move documents or silently change
+document identities/authority. Until relocation is actually accepted,
+the existing canonical index/status/paths remain valid.
+
+Read only the documents material to the assigned work: begin with
+index/orientation, then pertinent design area/contract and its
+dependencies. Designers and Application/Tertalis co-design threads may
+need broader cross-cutting design context to decide what functionality
+belongs to shared Tertalis versus the Application. Implementers,
+Coordinators and Integrators follow assignment scope, affected
+contracts, integration impact and observed gaps; they are NOT required
+to load the entire central design corpus into context without reason.
+Escalate an insufficient or contradictory design subset rather than
+guess. Modularizing large documents into retrievable focused files is
+a planned improvement, not a current implementation requirement.
+
+Future platform documentation should express lifecycle applicability
+(e.g. added/changed/deprecated/removed at specified official releases),
+so the latest documentation can still describe earlier supported
+behavior. There are NO formal Tertalis release versions today; use
+exact accepted Git SHA references for present changes where relevant,
+and do not invent release numbers or equate a design change with an
+implemented/released capability. Specific annotation schema and
+migration of documents remain undecided.
+
 11.09. Changes to Integration's coordination role do not revoke semantic
 ownership of application-specific iteration by application workstreams, or
 require all direct requests to pass through Integration. Shared framework and
