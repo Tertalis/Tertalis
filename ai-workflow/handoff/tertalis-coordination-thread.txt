@@ -136,3 +136,69 @@ OUTSTANDING
    coordination data from application copies at the integration boundary.
 5. Verify central registry of application repository locations and current
    workstream ownership/mail before dispatching work.
+
+
+APPLICATION BOOTSTRAP AND COORDINATION TRANSITION CLARIFICATION - 2026-11-22
+----------------------------------------------------------------------------
+User clarified the intended long-term arrangement:
+
+1. FILE-BACKED COORDINATION AUTHORITY
+The canonical file-backed inbox/state/protocol at Tertalis/Tertalis
+integration remains authoritative until an explicitly verified and
+approved GitHub-features-based replacement can fully take over.
+A developing GitHub-based mechanism is SECONDARY, mirrors authoritative
+file changes to the extent currently possible, and may legitimately
+have missing features/records during transition. Do not infer parity,
+bidirectional authority, automatic cutover or a deletion deadline.
+Preserve current canonical inbox until explicit retirement.
+
+2. APPLICATION/TERTALIS DEPENDENCY
+Each Application controls which Tertalis revision it uses, which need
+not be latest. Present combined Application repositories currently
+contain platform files/snapshots. The future desired user experience
+is clone an Application repository, then application-driven setup
+automatically obtains/validates its required Tertalis revision and
+initializes the environment. The actual source-linking/acquisition
+mechanism remains UNDECIDED; no submodule, subtree, package, archive or
+separate checkout has been authorized by this clarification.
+
+3. SETUP OWNERSHIP AND DIRECTION
+Tertalis root setup.ps1/setup.bat belong exclusively to the platform
+and never discover/invoke Application setups. The Application is the
+entrypoint for application bootstrap: it is intended to ensure the
+required Tertalis revision and its one-time platform setup, followed
+by its own Application setup. Do not make root setup dependent on an
+Application. Setup is initial provisioning after clone, not normal
+runtime startup on every application launch; explicit repair/change
+may require reexecution.
+
+CURRENT SOURCE CHECK - 2026-11-22
+----------------------------------
+Read-only inspected Tertalis/Tertalis integration root setup.ps1,
+setup.bat, and the old setup-entrypoints-convention.txt. Root BAT
+states internal-only setup; root PowerShell checks repository root,
+provisions Python/dependencies and hooks, does not call Application
+setup. Old convention says Application setup must NOT call root setup
+and must be invoked after separately running root setup. This is now
+superseded as FUTURE DESIRED APPLICATION BOOTSTRAP behavior, but the
+existing code has NOT been changed.
+Read-only inspected Tertalis/Tertalis-Experiment-Runner integration
+first-party/applications/experimentRunner/setup.ps1. It explicitly
+requires Python installed by separately executed root setup, so it
+DOES NOT currently perform automatic platform initialization.
+Expected application setup.ps1 paths for Materialization Test and
+Evil Analysis were not found; this limited path check is not a
+complete setup inventory. No user-visible end-to-end new clone test
+performed. No source or setup script changed.
+
+STILL OPEN
+----------
+- Specify pin record, acquisition/linking mechanism, platform setup
+  readiness/once-only contract and update/repair behavior with tests.
+- Reconcile older setup documents and AGENTS/SETUP guidance only when
+  the new bootstrap procedure is approved and implementation exists;
+  do not claim that an intended flow is already operational.
+- Design the secondary GitHub coordination mirror incrementally,
+  retaining file-backed authority until user-observed complete cutover.
+- Ensure platform snapshot imports never reintroduce operational
+  inboxes or stale full coordination indexes in Application trees.
