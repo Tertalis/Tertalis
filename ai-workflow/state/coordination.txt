@@ -74,6 +74,29 @@ Tertalis/Tertalis-Materialization-Test
 EnterTheNameHere/Evil-Analysis (personal, private; visibility unchanged)
 All have an integration development branch and default main.
 
+APPLICATION BASELINE SOURCE AUDIT — 2026-11-22
+------------------------------------------
+Source comparison recorded at:
+ai-workflow/knowledge/application-platform-baseline-audit-2026-11-22.txt.
+At audited Application integration HEADs, all five Applications
+contain exactly matching blobs for all 214 selected shared Tertalis
+implementation paths (backend, shared first-party Packs, selected
+shared tests, scripts and tools). The same projection matches
+multiple Tertalis commit SHAs; its contents alone do NOT uniquely
+identify an accepted platform SHA or prove Application compatibility.
+
+A broader 411-file canonical comparison found 338 exact matches,
+15 missing canonical files and 58 changed blobs in Completion,
+Experiment Runner, AI Buddy and Evil Analysis; Materialization Test
+has 337 exact matches, 15 missing and 59 changed (including .gitignore).
+Differences concentrate in design/docs and historical Actant/Turnix
+filenames. An Application snapshot containing current executable
+source may nevertheless contain old design documentation. Do not
+claim full Tertalis platform projection or compatibility acceptance.
+No platform adoption or tests performed. Next check accepted
+platform revision provenance per Application and define an explicit
+documentation-authority boundary for Integrators.
+
 OPEN COORDINATION
 -----------------
 Global migration/development freeze remains in recorded instructions;
