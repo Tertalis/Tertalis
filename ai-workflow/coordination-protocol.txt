@@ -584,6 +584,31 @@ This constraint governs current SOURCE synchronization, not the future
 PackManager's registry or distribution format. It does NOT authorize a
 platform-source upgrade merely to clean up ai-workflow files.
 
+12.19. APPLICATION PLATFORM-DOCUMENTATION EXCLUSION.
+The root design/ and docs/ trees in Tertalis/Tertalis belong to
+the PLATFORM, not to consuming Application repositories. They must
+NOT be copied or synchronized into an Application's working tree.
+The current authoritative platform documentation is consulted in
+Tertalis/Tertalis at its current documentation ref, independently of
+the Application's accepted executable platform SHA (section 11.08A).
+This prevents stale copied documentation from being mistaken for
+current authority. Application-owned documentation remains allowed
+under Application-owned locations (e.g., its AppPack tree), and
+ordinary root README.md/SETUP.md/AGENTS.md remain Application-owned
+orientation materials, not platform design snapshots.
+
+An explicitly authorized platform Integrator MUST exclude the root
+platform docs/, design/ and ai-workflow/ trees from source imports,
+preserve the Application's single ai-workflow/index.txt routing file,
+and inspect the exact resulting committed tree before acceptance.
+Tracked root docs/ or design/ files in the Application tree are an
+integration failure. This rule does not require a newer platform source
+adoption, release version, or wholesale documentation migration.
+Do not use deleted historical copied files to determine current
+platform design; consult canonical Tertalis documentation. Existing
+canonical documents in docs/ remain authoritative until their
+future relocation to design/ is separately approved and completed.
+
 12.15. The historically integrated EX-01/02 source at be092fd is an ownership
 mismatch, not a precedent. Preserve the accepted behavior/evidence and the EX
 AppPackage on actant-experiment-runner. Reconcile by ensuring that Application
