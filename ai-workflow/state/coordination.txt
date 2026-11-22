@@ -69,15 +69,32 @@ Global migration/development freeze remains in recorded instructions;
 do not infer that earlier ownership claims expired or new implementers
 have been released to work.
 
-A targeted 2026-11-22 audit confirmed that ALL FIVE Application
-integration trees still contain ai-workflow/mail, state, assignments
-and handoff directories. Their local indexes were converted to routing
-stubs and active AGENTS/README/SETUP canonical pointers were updated.
-The copied operational directories remain in those trees. The available
-GitHub file-read interface did not enumerate complete recursive trees.
-Do NOT delete them until exact contents, uniqueness, provenance and
-preservation have been reviewed. No cleanup or backend cutover has
-been executed.
+A full recursive Git tree inventory on 2026-11-22 established
+the tracked-file content in all six integration branches (no truncated
+trees), including Evil Analysis. Four Experiment Runner inbox-path
+messages absent under the same canonical path had IDENTICAL blob SHAs
+under canonical experiment-runner/archive/. Every remaining mail file
+matched canonical by exact path and SHA except an older local message
+template, preserved by application Git history and superseded by the
+canonical new template.
+
+The 764 copied ai-workflow/mail/ tracked files have now been removed
+from the FIVE Application integration branches, in distinct fast-forward
+commits, after validating complete post-deletion trees:
+Completion f55cefd (155), Experiment Runner df1c412 (144),
+AI Buddy db07641 (155), Materialization Test 9aaca07 (155),
+Evil Analysis aed1fa3 (155). Rechecked all six: canonical Tertalis
+retains its 155 mail files; each Application retains ZERO mail files
+and still has its local routing index. Historical commits retain
+removed files and the canonical archive retains all four moved mails.
+No main branch or code was changed. File-backed canonical mail remains
+authoritative, and GitHub-native coordination remains secondary.
+
+Application directories ai-workflow/state/, assignments/, handoff/,
+knowledge/ and other copied old ai-workflow instructions remain and are
+NOT separate operational authority. These require a separate content,
+ownership and historical-preservation review before cleanup. Do not
+blindly copy canonical mail back during any authorized platform adoption.
 
 The shared development board remains a historical projection last
 substantively reconciled 2026-11-10; it is not a live worker registry
@@ -98,10 +115,9 @@ PROVIDES
 
 REQUIRES / CONTINUATION
 -----------------------
-1. Inventory complete historical operational coordination file trees
-   in each Application; review preservation of unique records and
-   remove active duplicated mail/state/registry only in bounded
-   authorized repository changes.
+1. Review remaining copied Application state/assignments/handoff/
+   knowledge, distinguishing source-local unique information and
+   historical evidence before removing redundant operational copies.
 2. Review the CURRENT canonical inboxes and active assignment state,
    distinguish pending requests from superseded historical reports.
 3. Reconcile individual Application accepted platform SHAs and
