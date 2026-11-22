@@ -777,3 +777,60 @@ platform SHA vs actual application behavior acceptance; agree authorized
 Integrator treatment of platform documentation and local old designs.
 Do NOT change Application source or docs without separate authorized
 integration scope. The coordinated migration freeze remains recorded.
+
+
+LATEST DESIGN DOCUMENTATION AUTHORITY DECISION - 2026-11-22
+----------------------------------------------------------
+User clarification: documentation is ALWAYS consulted at its latest
+authoritative Tertalis revision, independently of the Tertalis source
+revision accepted by a particular Application. Platform design is
+conceptually platform-owned. An Application does not need to ship
+platform design documentation as a product dependency. However,
+during current active platform/Application co-design and development
+without completed creator-facing docs, implementers, Integrators,
+Coordinators and designers may need platform design docs to reason
+about contracts and shared vs Application-owned functionality.
+They must retrieve only relevant task-specific areas/dependencies
+rather than blindly loading the massive entire centralized design
+corpus. Designers solving cross-App design pressure can expand scope
+as needed. Planned document split into smaller focused files supports
+better retrieval and limits irrelevant context pollution.
+
+Target document layout: framework design under design/;
+docs/ eventually creator-facing and user-facing documentation. The
+currently authoritative indexed specifications still under docs/
+remain valid until actually relocated/superseded, no bulk move
+authorized by this decision. Exact document authority/status still
+follows the accepted index and design ownership.
+Future documentation records lifecycle applicability to formal
+platform versions (added, changed, deprecated, removed), with
+historical contracts visible in latest docs. No official release
+versions yet; current development revision identity = Git SHA,
+and design intent versus implemented/tested/released remain distinct.
+Annotation syntax/schema intentionally undecided.
+
+Executed documentation/instruction updates:
+- Tertalis/Tertalis coordination-protocol.txt 11.08A:
+  aec1b8a2b32d4dd3a501a01ea2f56e6a0eb963cc
+- Tertalis/Tertalis design/index.txt 04.06..04.09:
+  c4f5eb988001e9c5b6a79cb2397c21426ba3ca99
+- Tertalis/Tertalis AGENTS.md:
+  87254d4514cbbe9142c36e4371430269956f98ae
+- Five Application AGENTS.md instructions:
+  Completion 05048ec5
+  Experiment Runner 3af4e9b8
+  AI Buddy 8ece94d5
+  Materialization Test 924254b1
+  Evil Analysis 3fc4a544
+- Canonical coordination STATE c8b625a2.
+No runtime source, active platform SHA, Application design content,
+bulk file move, tests, or release-version declarations changed.
+No worker session unfreezing or dispatch implied.
+
+NEXT
+----
+Explore a targeted documentation retrieval map and doc-authority
+resolution in design/index and the canonical index, without forcing
+full-corpus reading; separately reconcile Application source accepted
+SHAs and historical migration acceptance evidence when needed.
+Keep the file-backed ai-workflow and no-automatic-source-import rules.
