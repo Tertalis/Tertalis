@@ -1,4 +1,4 @@
-ACTANT - SHARED WORK INDEX
+TERTALIS - SHARED WORK INDEX
 ==========================
 
 CANONICAL COORDINATION LOCATION - USER CONFIRMED 2026-11-21
@@ -18,6 +18,25 @@ Older Actant/actant-integration references below describe historical
 workstream topology or have not yet been individually migrated; they do
 NOT override this current coordination location.
 
+CURRENT REPOSITORY ROUTING REGISTRY - 2026-11-22
+-------------------------------------------------
+Tertalis proper: Tertalis/Tertalis, development branch integration.
+Completion: Tertalis/Tertalis-Completion, development branch integration.
+Experiment Runner: Tertalis/Tertalis-Experiment-Runner, development branch integration.
+AI Buddy: Tertalis/Tertalis-AI-Buddy, development branch integration.
+Materialization Test: Tertalis/Tertalis-Materialization-Test, development branch integration.
+Evil Analysis: EnterTheNameHere/Evil-Analysis (private), development branch integration.
+
+These are WORKING REPOSITORY LOCATIONS verified by GitHub tree/branch checks,
+not formal release-version declarations or proof that the current HEAD is a
+tested accepted Application+Tertalis combination. Each repository uses main
+as its default branch. The global workstream state, mail, assignments and
+handoffs are ONLY in Tertalis/Tertalis integration; Application routing
+stubs intentionally do not duplicate sibling repository addresses.
+Historical branch/location entries below are superseded for routing
+by this registry. Do not infer task assignment, release of migration
+freeze, or automatic platform upgrades from registry updates.
+
 TERTALIS COORDINATION THREAD - CURRENT BOOTSTRAP (2026-11-21)
 -----------------------------------------------------------
 Current cross-repository coordination conversation recovery checkpoint:
@@ -31,10 +50,11 @@ TERTALIS MIGRATION - EMERGENCY RESTART (2026-11-14)
 ---------------------------------------------------
 The migration conversation was retired because desktop/web/Android may
 not preserve the same thread. The user will create a replacement thread.
-THE REQUIRED CONTINUATION ENTRYPOINT is:
-ai-workflow/handoff/tertalis-migration-thread.txt
-Read it and ai-workflow/knowledge/tertalis-migration-plan.txt on the
-canonical actant-integration ref. Global work freeze remains in effect;
+Historical migration continuation evidence:
+ai-workflow/handoff/tertalis-migration-thread.txt and
+ai-workflow/knowledge/tertalis-migration-plan.txt, now accessed on
+Tertalis/Tertalis integration. Current recovery handoff takes precedence.
+Global work freeze remains in effect;
 the retired thread must not be resumed. The handoff records all executed
 changes, unresolved naming decisions, history preservation, and the next
 user-controlled step.
@@ -67,21 +87,25 @@ This is the routing entry point for independently contextualized Actant workstre
 It is operational coordination metadata, not an Actant design specification and not
 part of the CMR canonical index.
 
-Artifact ownership / branch topology
-------------------------------------
-Actant internal platform code (backend, reusable first-party Packs, shared tests)
-belongs on actant-integration. Application-exclusive AppPackages/AppPacks and
-their private artifacts/tests belong on their respective long-lived Application
-branches. Treat these branches as temporary equivalents of separate repositories.
-Integration reviews Application compatibility and records accepted Application
-refs, but does NOT import Application-only source to the platform branch.
-Application branches normally import the COMPLETE current Actant platform
-(backend plus reusable first-party Packs, including llama.cpp, and platform
-support) into their combined working tree alongside the Application AppPackage.
-Git synchronization may be selective for safety but the intended platform
-content baseline is complete. Platform-only fixes are reviewed and integrated
-separately. Canonical coordination still lives on
-actant-integration; see coordination-protocol.txt 12.08-12.15.
+CURRENT ARTIFACT OWNERSHIP AND SHA-BASED PLATFORM ADOPTION
+----------------------------------------------------------
+Tertalis/Tertalis integration owns shared platform internals, reusable
+first-party Packs and shared contracts. Applications own their respective
+AppPacks and exclusive source/tests in independent repositories.
+Current Application checkouts retain an exact last-accepted Tertalis
+platform source snapshot identified by Git SHA. It is NOT required to
+import the newest Tertalis when an implementer starts or resumes.
+Review newer shared changes for potential impact, but only a separately
+authorized Integrator may attempt to adopt a named platform SHA,
+adapt the Application and verify the combination before acceptance.
+Failed or unverified attempts leave the accepted baseline unchanged.
+Only Tertalis/Tertalis integration carries live shared coordination.
+Each Application's tracked ai-workflow/ tree must contain EXACTLY its
+own ai-workflow/index.txt routing stub. Platform source imports must
+exclude Tertalis's entire canonical ai-workflow/ tree and preserve the
+Application's stub. See coordination-protocol.txt sections 02 and 12.
+The following older EX-01/02 source reconciliation records are
+historical evidence, not a current source import assignment.
 Historical EX-01/02 placement mismatch at be092fd is reconciled: platform source
 e3024b8 excludes exactly nine EX files; combined Application ref 4b375a3 preserves
 them with complete imported platform baseline b59363c. Final tests: 1779 platform,
