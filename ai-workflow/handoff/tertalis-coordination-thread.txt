@@ -466,3 +466,73 @@ mail/state, existing assignments and inbox dispatch authority, and any
 non-root application docs containing old links. Old task history is not
 an active implementation mandate. The current file-backed coordination
 system remains primary; no automatic platform sync is authorized.
+
+
+CONTINUATION: COPIED COORDINATION TREE AUDIT - 2026-11-22
+---------------------------------------------------------
+User requested continuing workstream/operational inbox cleanup analysis.
+
+STRUCTURAL RESULTS
+------------------
+In each of these Application repositories on integration:
+  Tertalis/Tertalis-Completion
+  Tertalis/Tertalis-Experiment-Runner
+  Tertalis/Tertalis-AI-Buddy
+  Tertalis/Tertalis-Materialization-Test
+  EnterTheNameHere/Evil-Analysis
+the GitHub path read returned "points to a directory" for EACH:
+  ai-workflow/mail
+  ai-workflow/state
+  ai-workflow/assignments
+  ai-workflow/handoff.
+Thus all five still carry copied coordination subtrees despite their
+previously converted minimal local ai-workflow/index.txt stubs.
+
+Selected known-file SHA comparison proved:
+  ai-workflow/state/coordination.txt is the identical historical blob
+  3b23d6d96ed2d10a7e1ac15141e805f89ffac0fb on all six repos
+  before this audit's central STATE refresh.
+  All five Applications use older message-template SHA
+  59389c9e17d9755449177fc427d6a3982f0d60a4,
+  while the canonical template was newer.
+  Application copies of coordination-protocol.txt are old and not
+  uniformly identical; Experiment Runner has another older version.
+  Four Applications share old board blob 974df4b6...;
+  Experiment Runner board differs (b5503d0b...).
+These are concrete stale-copy examples, not a full byte/file inventory.
+The connector's search did not enumerate files by path and its
+fetch_file call rejects directory paths; container git network was
+unavailable. Do NOT claim recursive tree coverage, unique-file
+absence, or safe deletion. No Application file deletions performed.
+
+CANONICAL STATE CORRECTION
+--------------------------
+ai-workflow/state/coordination.txt on Tertalis/Tertalis integration was
+rewritten as CURRENT Tertalis state in commit d065a03b. It now records
+canonical location, file-backed primary / GitHub-native secondary,
+SHA-pinned Application adoption, exact known copied-dir situation,
+the active migration freeze and concrete outstanding tasks.
+History remains in Git; current STATE is no longer an old Actant diary.
+
+ai-workflow/board.txt header corrected at commit 0ff0e33f, identifying
+Tertalis/Tertalis integration and explicitly marking old 2026-11-10
+workstream entries as historical task projections, not a new assignment
+or evidence that workers are alive. No complete board/workstream
+reconciliation claimed.
+
+NEXT / BLOCKER
+--------------
+Use a full tracked-file inventory of each Application integration tree
+before removing copied operational mail/state/assignments/handoffs.
+Compare exact paths/blobs to canonical and look for unique Application
+history. Preserve distinct historical handoffs as needed. Until this
+can be done, keep copied directories explicitly NON-AUTHORITATIVE;
+do not dispatch work based on their contents.
+
+Canonical inbox pending-mail audit is also NOT exhaustive because
+the current connector lacks directory enumeration. The index points
+to canonical inbox roots but does not list all individual messages.
+Do not infer an empty inbox from absent search hits. A full tree
+inventory (e.g. git ls-tree on an authorized checkout) or an
+enumeration-capable connector is needed to establish outstanding
+work safely.
