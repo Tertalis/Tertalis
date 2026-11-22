@@ -361,3 +361,78 @@ conflicting active sync requirements. Establish a compact shared-platform
 change-impact notice template or process using existing mail/STATE/knowledge
 mechanisms without duplicating authority. Then read each Application's actual
 accepted baseline before assigning any integration.
+
+
+CONTINUATION: LIVE INSTRUCTIONS / IMPACT-NOTICE AUDIT - 2026-11-22
+-------------------------------------------------------------------
+User requested continuing the audit after automatic latest-platform imports
+were retired in canonical coordination protocol and sharing rules.
+
+READ-ONLY FINDINGS
+------------------
+Inspected AGENTS.md in all six repositories on integration. Several
+Application entrypoints still contained active references to the old
+Turnix/actant-integration coordination location, despite their newly
+appended correct canonical links. These were not merely historical notes.
+Canonical workstream STATE was inspected for Completion, AI Buddy,
+Materialization Test, Evil Analysis and Experiment Runner. Experiment
+Runner's current-state prose contained an explicit future latest-
+platform synchronization expectation and outdated canonical ref.
+Other state records retain historical SHA/branch observations; those
+were not mechanically rewritten as current facts. Inspection was
+keyword/targeted, not an exhaustive Git tree scan.
+
+CHANGES EXECUTED
+----------------
+All five Application AGENTS.md files had their active canonical ref
+corrected to Tertalis/Tertalis integration:
+  Completion cb6907de
+  Experiment Runner b070bafa
+  AI Buddy 9b4204f6
+  Materialization Test 320db6ab
+  Evil Analysis 4d69934d.
+Application README/SETUP and imported legacy coordination snapshots
+were not part of these writes.
+
+Canonical ai-workflow/state/experiment-runner.txt on Tertalis integration:
+  fbe48b73
+Replaced forward-looking default COMPLETE platform imports and copied
+other-app coordination registry/inbox assumptions with explicit authorized
+Integrator adoption and canonical-only operational registry. Preserved
+historical evidence and the no-Evil-app-source boundary.
+
+Canonical ai-workflow/coordination-protocol.txt:
+  94b8ee2c
+Added 12.16 and 12.17: accepted shared platform changes report exact
+Tertalis SHA, affected contracts/behavior, potentially affected
+consumers, actual test evidence and limits. Addressed notifications
+are informational and NOT application-upgrade authorization. A bounded
+Integrator assesses intervening changes and verifies an exact
+Application+Tertalis SHA pair, with failure preserving last accepted pair.
+
+Canonical ai-workflow/mail/message-template.txt:
+  d8ec1bc2
+Extended the existing message template with optional shared-platform
+change-impact fields. Kept the existing inbox/mail authority and
+recipient-based delivery. No parallel status store, versioning mechanism
+or release registry introduced.
+
+CURRENT LIMITS
+--------------
+No application platform source snapshots upgraded, no branches deleted,
+no main updates, no tests executed. Other historical and current
+ai-workflow/index, assignments, handoffs, repository README/SETUP files
+may still mention old names/import expectations. Need separate full
+tree/path inventory and classification before mass cleanup; do not
+rewrite historical evidence as present-state instructions.
+
+NEXT
+----
+1. Audit active Application README/SETUP and current assignments/
+   inbox in the canonical repo for specific conflicting start-sync rules.
+2. Inventory copied ai-workflow/mail/state operational files in App
+   repositories before removing; preserve unique history and ensure
+   future authorized platform import excludes them.
+3. Determine which shared platform changes currently have consumers
+   needing impact notifications; do not fabricate notices from old
+   historical completed tasks or automatically dispatch workers.
