@@ -591,3 +591,44 @@ NEXT TASKS
   divergence before deciding what to retain locally.
 - Add a repeatable platform-source import guard ensuring mail and
   canonical coordination operational trees do not get copied again.
+
+
+CANONICAL INBOX TRIAGE / REMAINING SNAPSHOT DIVERGENCE - 2026-11-22
+-------------------------------------------------------------------
+After removing copied mail from five Applications, scanned canonical
+Tertalis/Tertalis integration Git tree and current known inbox messages.
+Substantive inbox entries, excluding README/.gitkeep: 18 total:
+integration 5; ai-buddy 4; completion 4; materialization-test 2;
+evil-analysis 2; execution-resource-sessions 1; intake none.
+Most entries are dated capability-availability notices and already
+accepted-task acknowledgements. They remain in inbox, but do not
+automatically authorize new work or upgrade an Application's accepted
+platform SHA. No inbox files were moved or archived during triage.
+A notable request remains:
+mail/integration/inbox/2026-11-10-er04c-preheader-boundary-test.txt
+requests an operator-supervised ER-04C-PH1 native pre-header experiment;
+no unsupervised destructive tests or new implementation were run or
+authorized by this audit. Validate current need and explicit supervision
+before any test. Reviewed messages explicitly distinguishing availability
+from adoption for AI Buddy, Completion, Materialization Test, Evil Analysis,
+and accepted ER-02 notification. Several obsolete messages contain
+historical "synchronize" directions; canonical newer protocol controls.
+
+Canonical coordination STATE recorded this inbox finding in
+commit 235c6d7112ebfea1d819b249ca40879e1fb0a488.
+
+Remaining copied non-mail ai-workflow records have NO paths absent from
+canonical (after removing index exception and mail); their differing
+blobs cover 20 path+SHA variants: older sharing/protocol/board, migration
+handoff/plan and individual workstream STATE records. Before removing
+these, check for application-specific later observations and preserve
+any unique material in canonical knowledge/history. Full tree fetch now
+works and can support precise comparison. Application routing indexes
+must stay local; all canonical mail and current shared state stay on
+Tertalis/Tertalis integration.
+
+Current source/edit boundaries: NO platform source, setup script, app
+runtime, default main, privacy or protection setting changed. Application
+integration branches contain 764 fewer duplicated mail files in total.
+Future platform sync/adoption needs an exclusion guard to prevent these
+files returning.
