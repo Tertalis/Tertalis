@@ -632,3 +632,58 @@ runtime, default main, privacy or protection setting changed. Application
 integration branches contain 764 fewer duplicated mail files in total.
 Future platform sync/adoption needs an exclusion guard to prevent these
 files returning.
+
+
+FINAL APPLICATION AI-WORKFLOW TREE CONSOLIDATION - 2026-11-22
+-------------------------------------------------------------
+Full Git tree and blob comparison (untruncated) established that all
+remaining copied Application ai-workflow file PATHS besides the local
+index already exist in canonical Tertalis/Tertalis integration.
+Migration plan/handoff snapshots checked were exact earlier prefixes
+of canonical; application STATE history includes older divergent
+revisions but remains preserved in the Application Git ancestry.
+Historical files were not reinterpreted as current authority.
+No new operational mail/history source was needed.
+
+Removed exactly 800 additional tracked ai-workflow files from five
+Application integration development branches (only index left):
+  Tertalis/Tertalis-Completion: a35fde1d359d7b8d17d70844cbb0616b609b4188 (162)
+  Tertalis/Tertalis-Experiment-Runner: 42939273265ef2f821577aff38b8a22b84183acf (152)
+  Tertalis/Tertalis-AI-Buddy: 13cee5b244530359e69c6060e3d270d464936501 (162)
+  Tertalis/Tertalis-Materialization-Test: 6bb66c9a4a5de83fa6d81454e33621e592f28d06 (162)
+  EnterTheNameHere/Evil-Analysis: 67fde17d79f748dd8e9c04a9a10c63296dc2a1bf (162)
+
+Combined with prior 764 mail-file removals: 1,564 copied coordination
+files retired from current Application integration trees.
+All six Git trees verified untruncated AFTER these commits:
+  Tertalis/Tertalis retains full canonical ai-workflow;
+  each of five Applications has EXACTLY ai-workflow/index.txt.
+No Application source, pinned Tertalis snapshot, runtime or tests changed.
+No main branch, repo visibility, branch protection or canonical inbox
+authority changed; previous file content survives in Git history.
+
+Import prevention:
+- canonical coordination-protocol.txt section 12.18 at 6b5d754
+  requires explicit Integrator check of exact committed Application
+  tree allowlist for ai-workflow/index.txt ONLY. A platform import
+  must exclude canonical ai-workflow/ and preserve local stub;
+  missing or additional ai-workflow files block acceptance.
+- All five local index routing stubs record this condition:
+  Completion 6a8997a, Experiment Runner 5d99b91,
+  AI Buddy cbbf38c, Materialization Test a227090,
+  Evil Analysis 5ea5272.
+- canonical coordination STATE corrected at 5e163a2.
+This is a DOCUMENTED integration gate, not yet a CI-enforced guard
+script. Future process/tooling may automate it; until then Integrators
+must check explicit git ls-files and committed tree.
+
+NEXT / REMAINING
+----------------
+1. Review live canonical inbox status/owners, including the supervised
+   ER-04C pre-header request; do not assume old notices are assignments.
+2. Reconcile canonical workstream registry and exact current accepted
+   platform SHAs against actual separate-repo working refs.
+3. Improve the integration workflow to automate allowed-source
+   projection and one-index invariant checks if separately approved.
+4. GitHub-native coordination remains SECONDARY until verified cutover;
+   do NOT retire canonical file-backed inbox.
