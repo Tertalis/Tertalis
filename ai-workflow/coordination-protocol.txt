@@ -489,6 +489,31 @@ behaviors, potentially affected consumers, required adaptation, validation
 evidence and known limitations. Notices enable planning; they do not initiate
 automatic Application upgrades.
 
+12.16. SHARED PLATFORM CHANGE IMPACT AND CONSUMER NOTIFICATION.
+When a Tertalis platform change is accepted, Integration records its exact
+accepted platform SHA, changed interfaces/behavior/guarantees, relevant
+verification and limitations, and potentially affected Application
+consumers. If a consumer might need adaptation, publish an addressed
+notification to its workstream inbox on the CANONICAL Tertalis/Tertalis
+integration ref. A compact shared knowledge record may be linked from
+multiple addressed notices; do not duplicate conflicting state. The
+notice identifies expected action or investigation, NOT automatic adoption
+authority. Where impact is uncertain, say so and request assessment.
+No consumer becomes upgraded merely because it received or read mail.
+
+12.17. APPLICATION INTEGRATION REPORTING.
+A scoped Integrator checks the Application's current accepted platform SHA,
+the requested exact target SHA, all material intervening platform changes,
+declared contract/dependency requirements, and the actual resulting
+platform+Application tree. It records Application adaptation changes,
+test evidence, acceptance or failure, and any remaining unknowns.
+An accepted integration publishes the Application SHA and adopted Tertalis
+SHA in canonical workstream STATE. A failed attempt must not replace the
+last accepted pair. An implementer discovering a mismatch reports it and
+requests integration coordination rather than importing newer source.
+The current system has NO official Tertalis release versions or version
+ranges; references here are exact Git commits only.
+
 12.15. The historically integrated EX-01/02 source at be092fd is an ownership
 mismatch, not a precedent. Preserve the accepted behavior/evidence and the EX
 AppPackage on actant-experiment-runner. Reconcile by ensuring that Application
