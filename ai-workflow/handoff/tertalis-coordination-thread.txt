@@ -687,3 +687,51 @@ NEXT / REMAINING
    projection and one-index invariant checks if separately approved.
 4. GitHub-native coordination remains SECONDARY until verified cutover;
    do NOT retire canonical file-backed inbox.
+
+
+CANONICAL REGISTRY AND SOURCE-IMPORT DEFAULT CORRECTED - 2026-11-22
+-----------------------------------------------------------------
+Canonical ai-workflow/index.txt at b722e18d now starts with an
+explicit verified current repository routing registry listing:
+  Tertalis/Tertalis
+  Tertalis/Tertalis-Completion
+  Tertalis/Tertalis-Experiment-Runner
+  Tertalis/Tertalis-AI-Buddy
+  Tertalis/Tertalis-Materialization-Test
+  EnterTheNameHere/Evil-Analysis (private)
+All have working development branch integration. Only Tertalis/Tertalis
+integration is shared coordination authority. This is a repository
+location registry, NOT accepted App platform SHA evidence.
+
+Critically, old index "Artifact ownership / branch topology" section
+was rewritten: NO default newest-complete-platform import at App thread
+start; preserve Application's last accepted exact Tertalis SHA. Only a
+bounded authorized Integrator may attempt adoption; enforce one-local-
+index invariant, retain Application-only files and verify compatibility.
+Historical EX/legacy branch details below this current registry remain
+historical evidence. Old migration handoff indexed as historical rather
+than the current conversation entrypoint.
+Canonical coordination STATE updated with registry record at 18613a2.
+
+CURRENT FINISH STATUS
+---------------------
+- Each Application integration branch has EXACTLY one tracked
+  ai-workflow/index.txt and NO other ai-workflow paths.
+- Canonical file-backed mail, state, assignments, knowledge and handoffs
+  stay on Tertalis/Tertalis integration and are authoritative.
+- Explicit documented committed-tree gate prevents silently accepting
+  reinjected coordination trees. An automated CI/script guard is not
+  yet implemented.
+- No Application source/pinned Tertalis revision, runtime, tests, main
+  branch, private/public status or GitHub-native mirror changed.
+- Global migration/development freeze remains recorded; no worker
+  activation or new implementation assignment claimed.
+
+POTENTIAL NEXT TASK
+-------------------
+Reconcile canonical per-Application STATE accepted SHA versus separate
+repository Git source projections (do not confuse current HEAD and
+accepted platform baseline). Inspect the specific outstanding supervised
+ER-04C request with user before taking action. Consider a repository
+CI/verification script for the one-index rule when implementation is
+authorized, and review any obsolete current-facing index passages.
