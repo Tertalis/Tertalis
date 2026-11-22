@@ -514,6 +514,35 @@ requests integration coordination rather than importing newer source.
 The current system has NO official Tertalis release versions or version
 ranges; references here are exact Git commits only.
 
+12.18. APPLICATION COORDINATION-TREE INVARIANT.
+In every participating Application repository's integration development
+tree, ai-workflow/index.txt is the sole tracked path under ai-workflow/.
+It is an Application-specific minimal routing entrypoint and MUST NOT be
+replaced by the canonical Tertalis index. The canonical repository
+Tertalis/Tertalis integration alone owns full ai-workflow operational
+content (mail, STATE, assignments, handoffs, shared knowledge, registry
+and protocol). Application guidance is not an independent copy of these.
+Historical records persist in Git ancestry, but are not live authority.
+
+Before an explicitly authorized Integrator accepts ANY platform-source
+adoption, check the exact resulting Application Git tree: the set of
+tracked paths beginning with ai-workflow/ MUST be exactly
+{ai-workflow/index.txt}. A practical local check is
+'git ls-files -- ai-workflow/' against that exact one-path allowlist;
+check the committed target tree as well, not only a local working
+checkout. Missing local routing index or ANY additional copied
+ai-workflow path is an integration failure requiring correction BEFORE
+acceptance. Exclude the whole canonical ai-workflow/ subtree when
+copying/importing platform-owned files and preserve the existing
+Application-specific local index. Do not let a broad merge or subtree
+update reintroduce canonical operational records or overwrite the
+Application's entrypoint. Report the import projection, exact platform
+and Application SHAs, and verification outcome.
+
+This constraint governs current SOURCE synchronization, not the future
+PackManager's registry or distribution format. It does NOT authorize a
+platform-source upgrade merely to clean up ai-workflow files.
+
 12.15. The historically integrated EX-01/02 source at be092fd is an ownership
 mismatch, not a precedent. Preserve the accepted behavior/evidence and the EX
 AppPackage on actant-experiment-runner. Reconcile by ensuring that Application
