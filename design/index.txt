@@ -88,6 +88,27 @@ It does NOT define subsystem APIs or implementation mechanisms.
        automatically canonical specifications.
 04.05. Distinguish intended features, implemented code, and verified
        integrated behavior. Report genuine design conflicts explicitly.
+04.06. The authoritative platform design is consulted at its current
+       Tertalis/Tertalis revision, not from an Application's older
+       bundled source snapshot. This does not advance the Application's
+       accepted platform implementation SHA or prove the current
+       design is already implemented in that earlier platform.
+04.07. Read relevant design areas and dependencies as needed. The
+       entire design corpus is not a mandatory input for every task.
+       Designers working across Application and platform boundaries
+       may need broader context; bounded implementation tasks generally
+       need their actual contracts and affected neighboring areas.
+04.08. design/ is the destination for platform framework design.
+       Existing authoritative design specifications under docs/ remain
+       authoritative at their currently indexed locations until they
+       are explicitly moved or superseded. Future docs/ is intended
+       for creator-facing and user-facing documentation.
+04.09. Future documentation should record release applicability
+       (introduced, changed, deprecated, removed) while retaining
+       historical contracts. Official release versions do not exist
+       yet; current evidence uses exact Git commits. Neither a design
+       decision nor a source SHA is automatically a public release.
+       The detailed annotation format remains to be designed.
 
 
 ===============================================================================
