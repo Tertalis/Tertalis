@@ -85,14 +85,16 @@ ACTANT IMPLEMENTATION KNOWLEDGE, STATE AND HANDOFF SHARING
 08. BRANCH COORDINATION
 -----------------------
 
-08.01. The Actant integration branch owns the complete shared Actant platform.
-The standard Application workflow imports the COMPLETE platform into the
-Application branch as a combined working checkout: backend/, all reusable
-first-party/ Packs (including the llama.cpp driver), and corresponding
-platform-owned support files, plus that Application's exclusive AppPackage.
-This is a source-copy/dependency relationship, not shared ownership.
-Synchronize with rebase, merge, cherry-pick or other safe explicit Git
-operations while preserving Application-exclusive files.
+08.01. Tertalis/Tertalis integration owns the shared Tertalis platform.
+Each Application repository currently retains a COMPLETE platform source
+snapshot at its own last accepted Tertalis commit SHA, alongside its
+Application-exclusive AppPackage. This is a temporary combined-checkout
+source/dependency arrangement, not shared ownership. Ordinary Application
+implementation MUST NOT copy current platform files or upgrade to newest
+Tertalis merely because work starts or resumes. Platform adoption is an
+explicitly assigned Integrator task with a named target SHA, compatibility
+adaptation, verification and acceptance. Preserve Application-owned files
+and do not copy the canonical ai-workflow operational inbox/mail/state.
 
 08.02. Application-specific iteration remains on application branches. Framework/shared changes discovered there SHOULD ultimately enter integration and then become available to both consumers.
 
@@ -106,15 +108,18 @@ launchers remain on their Application branch even after independent acceptance.
 First-party is a reusable platform classification, not a synonym for every
 Application currently kept in this Git repository.
 
-08.05. Application branches synchronize the latest accepted COMPLETE platform
-downstream as the default, rather than requiring a separate installed platform
-or selecting only individual reusable Packs. Git changes may be selected
-carefully to achieve the complete baseline without deleting AppPackage files.
-Never automatically import a whole Application branch upstream into
-actant-integration. For a genuinely shared facility identified by Application
-pressure, split out and independently review a platform-owned implementation.
-Integration records cross-boundary acceptance and evidence by exact Application
-commit without incorporating exclusive AppPackage code or tests into its tree.
+08.05. There is NO default synchronization of latest Tertalis into an
+Application. An explicitly authorized Integrator may adopt a named platform
+commit only after assessing shared-change impact and making any required
+Application adaptations. Verify the complete resulting platform projection,
+combined tests and contracts; failure leaves the previously accepted platform
+baseline in place. Exclude active shared ai-workflow inbox/state/registry and
+retain the Application's local routing stub. Never automatically import a whole
+Application branch upstream into Tertalis/Tertalis integration. For a genuinely
+shared facility identified by Application pressure, split out and independently
+review a platform-owned implementation. Record exact platform and Application
+commits, changed contracts, affected consumers, necessary adaptations and
+acceptance evidence for future adopters.
 
 08.06. Historical EX-01/02 discrepancy: Integration previously incorporated the
 Experiment Runner's first-party/applications/experimentRunner source/tests
