@@ -536,3 +536,58 @@ Do not infer an empty inbox from absent search hits. A full tree
 inventory (e.g. git ls-tree on an authorized checkout) or an
 enumeration-capable connector is needed to establish outstanding
 work safely.
+
+
+COMPLETE GIT TREE INVENTORY AND APPLICATION MAIL CLEANUP - 2026-11-22
+--------------------------------------------------------------------
+A supported GitHub Git-data fetch operation was identified:
+GET /repos/{owner}/{repo}/git/trees/integration?recursive=1.
+Read full untruncated Git trees from all SIX integration branches,
+including the private personal Evil Analysis repo via authorized connector.
+No need to infer directories from partial code search.
+
+Initial Application ai-workflow (excluding local index) inventory:
+  Completion: 308 identical path+SHA, 9 divergent old blobs, 0 unique paths
+  Experiment Runner: 282 identical, 10 divergent, 4 paths absent canonically
+  AI Buddy: 307 identical, 10 divergent, 0 unique paths
+  Materialization Test: 309 identical, 8 divergent, 0 unique paths
+  Evil Analysis: 309 identical, 8 divergent, 0 unique paths.
+The four unique-path Experiment Runner inbox messages dated 2026-11-09
+were independently found at exact SAME BLOB SHAs in Tertalis canonical
+mail/experiment-runner/archive/. Thus they are archive-vs-inbox placement
+differences, not unique content. Every other copied mail blob was either
+identical to canonical path+SHA or the old local message-template blob
+which is preserved in Git history and superseded by newer canonical
+message template. No original canonical mail or unique content deleted.
+
+On each APPLICATION integration branch, removed ONLY the copied tracked
+ai-workflow/mail/* files in a single explicit Git tree deletion commit,
+using parent HEAD with fast-forward ref update and no force:
+  Tertalis/Tertalis-Completion: 155 removed; f55cefd36fccf75746d4555b1968abbf3eba2be2
+  Tertalis/Tertalis-Experiment-Runner: 144 removed; df1c4122f09b9bd53ca3ce46aaf05a8618a1c545
+  Tertalis/Tertalis-AI-Buddy: 155 removed; db076419c4bd85845a515929decd5ab509fe9cd0
+  Tertalis/Tertalis-Materialization-Test: 155 removed; 9aaca07cb6014a75994d8ef81a36d5e19fa43e0a
+  EnterTheNameHere/Evil-Analysis: 155 removed; aed1fa37f0ba248150a9911965377b93f4b57b7b
+  TOTAL: 764 copies removed.
+Verified all six post-change recursive trees untruncated:
+  canonical Tertalis mail files: 155; each Application mail: ZERO;
+  all Application ai-workflow/index.txt routing stubs PRESENT.
+Each application keeps its other copied state/assignments/handoffs/
+knowledge pending separate review. No source/tests/platform snapshots,
+main branch, repository visibility, canonical original mail or inbox
+cutover altered. File-backed canonical mail stays authoritative.
+
+Canonical ai-workflow/state/coordination.txt updated to match this
+actual cleanup in c46446257699267171ac2095b011693ab4e398e6.
+Do not reintroduce copied ai-workflow/mail from a platform source
+snapshot during any future authorized Tertalis integration.
+
+NEXT TASKS
+----------
+- Evaluate the canonical LIVE inbox records (including old unanswered
+  messages) against current acceptance and user direction, rather than
+  treating every dated inbox entry as a fresh authorization.
+- Inventory the remaining copied state/assignment/handoff/knowledge
+  divergence before deciding what to retain locally.
+- Add a repeatable platform-source import guard ensuring mail and
+  canonical coordination operational trees do not get copied again.
