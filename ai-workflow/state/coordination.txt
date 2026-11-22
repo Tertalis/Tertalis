@@ -96,6 +96,19 @@ NOT separate operational authority. These require a separate content,
 ownership and historical-preservation review before cleanup. Do not
 blindly copy canonical mail back during any authorized platform adoption.
 
+The canonical Git tree currently contains 18 substantive inbox
+messages across integration (5), AI Buddy (4), Completion (4),
+Materialization Test (2), Evil Analysis (2) and Execution Resource
+Sessions (1), excluding README/.gitkeep placeholders.
+Most are older availability notices or closed-task acknowledgements,
+not newly authorized work. In particular,
+ai-workflow/mail/integration/inbox/2026-11-10-er04c-preheader-boundary-test.txt
+is a still-in-inbox request to consider a supervised ER-04C-PH1 test,
+NOT an authorized unsupervised implementation or test run. Its exact
+disposition and authority must be reviewed with the owner/user before
+acting. No mail moved/archived during this triage. Inbox presence
+alone is not sufficient evidence of outstanding work or clearance.
+
 The shared development board remains a historical projection last
 substantively reconciled 2026-11-10; it is not a live worker registry
 or comprehensive depiction of this migration. Older canonical
