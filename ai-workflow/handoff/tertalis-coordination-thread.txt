@@ -202,3 +202,66 @@ STILL OPEN
   retaining file-backed authority until user-observed complete cutover.
 - Ensure platform snapshot imports never reintroduce operational
   inboxes or stale full coordination indexes in Application trees.
+
+
+FUTURE PACKMANAGER DISTRIBUTION DIRECTION - 2026-11-22
+------------------------------------------------------
+USER-DEFINED IDEAL TARGET, NOT A CURRENT IMPLEMENTATION CLAIM.
+
+PackManager is a first-class INTERNAL Tertalis capability, backed by
+an online Pack registry (registry endpoint and format still to be
+decided). An AppPack is a Pack in this model. A Pack may be distributed
+and installed independently of the Application owning/consuming it.
+
+Two distribution paths:
+A. TERTALIS-FIRST: user downloads a chosen Tertalis proper version tpV,
+   runs a full Tertalis environment with PackManager available, browses
+   applications declared to support tpV, and installs applications and
+   their dependency Packs via PackManager.
+B. APPLICATION-FIRST: user downloads a complete Application bundle
+   containing the exact Tertalis proper tpV selected by the Application,
+   the Application's own Packs, and optionally other ready-to-use
+   dependencies/assets (LLM inference engine/model, TTS, ASR, etc).
+   This is still ordinary fully functional Tertalis: PackManager remains
+   available to install additional Applications/Packs into the same
+   environment.
+
+Compatibility is version-aware but NOT necessarily binary success/failure.
+Declared support for other Tertalis versions may be selected after user
+explicitly acknowledges the compatibility risk; such software is not
+asserted to definitely fail. This applies when running newer Apps on
+older Tertalis and older Apps on newer Tertalis as applicable.
+App-specific declared support is distinct from actual proven runtime
+compatibility. Do not automatically infer a warning-free compatible
+combination without evidence.
+
+PackManager's intended responsibilities:
+- discover/download/version-select Packs and AppPacks using online registry;
+- use Tertalis tpV, Pack capabilities, requirements and dependency metadata
+  to choose suitable versions;
+- find alternative implementations of capabilities;
+- detect missing/unsatisfied required capabilities and report warnings;
+- determine dependency-appropriate load order (consumer should not load
+  before its required provider), with user control over ordering and
+  replacement choices and explicit warnings where choices break claims;
+- install Applications with appropriate dependency Packs.
+
+Tertalis ships modular shared first-party Packs usable selectively;
+applications do NOT need all shared Packs and need not bundle all
+third-party dependencies. The first-party versus third-party origin
+is not special runtime treatment. Not all included Packs must be used.
+
+Current repository model embeds/pins a platform snapshot inside each
+Application checkout, with unfinished application-bootstrap improvements.
+That is a TEMPORARY distribution workaround. It is not the conceptual
+PackManager packaging model, nor a reason to force Packs into separate
+Git repositories. Do NOT start implementing PackManager from this
+design-direction checkpoint: contracts for registry, version selection,
+capability compatibility, dependency ordering, application packaging,
+and install/update lifecycle remain to be specified/reviewed.
+Current file-backed coordination inbox remains authoritative until
+explicitly approved replacement; distribution design does not change
+its location or ownership.
+
+FOLLOW-UP: future dedicated PackManager design workstream after explicit
+authorization, with bounded design checkpoint before implementing.
