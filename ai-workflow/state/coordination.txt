@@ -53,6 +53,17 @@ changed contracts, potentially affected consumers, required adaptation
 or investigation, actual verification and limitations. Notification
 is NOT authorization to upgrade.
 
+CURRENT REGISTRY ROUTING
+------------------------
+The canonical ai-workflow/index.txt now includes an explicit verified
+2026-11-22 repository routing registry of all six participating
+repositories and their integration development branches. Its previous
+default instruction to import newest complete Tertalis into Applications
+has been replaced by a last-accepted-SHA and authorized Integrator rule.
+Historical workstream branch names and acceptance refs in older sections
+remain evidence, not live repository routing. Registry update:
+b722e18d41eb60bd6ded9bb90aaa780249c06191.
+
 VERIFIED REPOSITORY DISTRIBUTION
 --------------------------------
 Tertalis/Tertalis
