@@ -1,10 +1,17 @@
-ACTANT DEVELOPMENT BOARD
-========================
+TERTALIS DEVELOPMENT BOARD
+=========================
 
 Owner: Integration for shared coordination projection; individual workstream owners
 remain authoritative for their implementation, reviews and current STATE.
-Canonical location/ref: ai-workflow/board.txt on actant-integration.
-Last reconciled: 2026-11-10 (published repo evidence, not a live agent-session view).
+Canonical location/ref: Tertalis/Tertalis integration, ai-workflow/board.txt.
+Last task-by-task workstream reconciliation: 2026-11-10.
+Coordination-location header reconciled: 2026-11-22.
+CAUTION: the workstream entries below preserve earlier accepted-task evidence,
+not current live sessions or new implementation assignments. During migration,
+read the current coordination protocol, STATE and latest handoff before acting.
+No prior 'import latest platform' direction in this historical projection is
+automatic adoption authority. Application upgrades require explicit Integrator
+scope and accepted SHA-based verification.
 
 READING THIS BOARD
 ------------------
