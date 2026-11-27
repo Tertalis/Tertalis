@@ -46,27 +46,17 @@ and next reconciliation steps; it does not itself migrate the old mail/protocol
 authority or unfreeze implementers. Read alongside the historical migration
 handoff and the migration plan below.
 
-TERTALIS MIGRATION - EMERGENCY RESTART (2026-11-14)
----------------------------------------------------
-The migration conversation was retired because desktop/web/Android may
-not preserve the same thread. The user will create a replacement thread.
-Historical migration continuation evidence:
-ai-workflow/handoff/tertalis-migration-thread.txt and
-ai-workflow/knowledge/tertalis-migration-plan.txt, now accessed on
-Tertalis/Tertalis integration. Current recovery handoff takes precedence.
-The global freeze was lifted by the user on 2026-11-27.
-The retired thread is superseded by the current migration handoff. The handoff records all executed
-changes, unresolved naming decisions, history preservation, and the next
-user-controlled step.
-
-Tertalis migration control (2026-11-13)
---------------------------------------
-Historical migration freeze (lifted 2026-11-27): normal development now
-follows canonical admission and ownership rules. The stepwise, history-preserving migration plan
-(and destination transfer LAST) is recorded at:
+TERTALIS MIGRATION - CLOSED (2026-11-27)
+----------------------------------------
+User authorized closure after confirming successful tests in all six repositories.
+Historical execution and closure record:
 ai-workflow/knowledge/tertalis-migration-plan.txt.
-Existing branch names and coordination ref remain unchanged until explicitly
-migrated. No assistant branch deletion or unapproved failure tests.
+Retired migration handoff: ai-workflow/handoff/tertalis-migration-thread.txt.
+Platform baseline evidence: ai-workflow/knowledge/application-platform-provenance-2026-11-27.txt.
+Global migration freeze is lifted. Ordinary admission, ownership and Integrator
+acceptance rules apply. No migration-specific continuation remains.
+GitHub-native coordination is separate work; file-backed authority continues.
+No automatic platform upgrades, branch deletions, or ownership releases.
 
 Current setup entrypoint convention (2026-11-09)
 ------------------------------------------------
