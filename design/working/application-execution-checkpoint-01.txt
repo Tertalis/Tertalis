@@ -5,27 +5,30 @@ Current Tertalis working-design location:
     design/working/application-execution-checkpoint-01.txt
 
 Status:
-    NON-AUTHORITATIVE WORKING CHECKPOINT
+    NON-AUTHORITATIVE WORKING CHECKPOINT, revision 2 (2026-11-27).
+    Revision 2 answers the analyzer review
+    ai-workflow/mail/integration/inbox/2026-11-27-application-execution-step-contract-analyzer-review.txt
+    (findings R1-R7 and contract clarifications); the disposition of each is
+    recorded in section 12 and in the reply mail
+    2026-11-27-ai-buddy-application-execution-review-disposition.txt.
 
 Builds on:
     design/architecture.txt 02 (Host, concurrent Applications), 04 (Domain,
-    Flow and Tertalis responsibilities)
-    design/working/memory-value-system-flow-checkpoint-11.txt sections 66
-    (long-running Invocation, Accepted work, persistent continuation), 108
-    (reusable scheduling and waits only when patterns emerge from actual use),
-    150-155 (simple correct implementation first)
-    docs/ DA-19 (Jobs, queued/paused/continued phases, scheduler identity),
-    DA-20 (ApplicationRun lifecycle), DA-18 (debugger breakpoints)
-    ai-workflow/knowledge/ai-buddy-platform-pressure-2026-11-27.txt section 02
-    (G1) and application-suspension-continuation-pressure.txt section 09 (G6)
+    Flow and Tertalis responsibilities), 05.05 (uncertain completion is not
+    permission to repeat)
+    design/working/memory-value-system-flow-checkpoint-11.txt sections 66,
+    108, 150-155
+    docs/ DA-18 (breakpoints), DA-19 (Jobs), DA-20 (ApplicationRun lifecycle)
+    ai-workflow/knowledge/ai-buddy-platform-pressure-2026-11-27.txt sections
+    02 (G1) and 09 (G8); application-suspension-continuation-pressure.txt 09
 
 Purpose:
-    Records the agreed direction for platform-owned continuous Application
+    Records the direction for platform-owned continuous Application
     execution: what drives an Application's work after its lifecycle hooks
-    return, how it waits without polling, how external input reaches it, and
-    how a host pauses it. AI Buddy is the first consumer; its application-owned
-    host loop (host/buddyLoop.py) is the pattern this generalizes. The file-level
-    plan is design/working/application-execution-implementation-plan-01.txt.
+    return, how it waits without polling, how external input reaches it, how a
+    host pauses and stops it, and which guarantees make that safe. AI Buddy's
+    application-owned loop (host/buddyLoop.py) is the pattern generalized.
+    File-level plan: design/working/application-execution-implementation-plan-01.txt.
 
 Decided inputs (design owner, 2026-11-27):
     - Step contract (not a timer API).
@@ -35,189 +38,293 @@ Decided inputs (design owner, 2026-11-27):
     - Future, not now: with many Applications running, non-important ones may
       be asked to go quiescent while important ones keep running; "I can go
       quiescent" becomes an AppPack manifest and/or config declaration.
-    - Process: this checkpoint and a plan, then a platform branch for
-      Integration review.
+    - Process: checkpoint and plan, independent review, then a platform branch.
 
 
 1. SCOPE
 ========
 
-1.01. In scope (first slice):
-    a. continuous execution after create/load, started by the platform;
-    b. waking at the time the Application asks for, without polling;
-    c. external input delivered as queued work that wakes the Application;
-    d. host pause/resume at Job boundaries, with inspection still possible;
-    e. a platform clock Applications and tests read instead of wall time
-       passed in payloads;
-    f. waiting for, or being called back on, a Job's completion.
+1.01. In scope (first slice): platform-started execution after activation;
+waking at the time the Application asks for, without polling; external input
+as submitted Jobs; host pause/resume and stop at Job boundaries; a narrow
+inspection path; Job completion observation; a platform clock.
 
-1.02. Not in this slice:
-    - Application quiescence/suspension proper (G6; resource release, model
-      unload, wake triggers). Recorded as future in section 9.
-    - Long external waits without holding the ApplicationRun lane (G1e; the
-      Flow Accepted/continuation shape, checkpoint 11 section 66).
-    - A general scheduler, workflow engine or cross-Application arbitration
-      (checkpoint 11 section 108: not until patterns emerge).
-    - Persisted timers or continuation across ApplicationRuns: due times live
-      in Application state; a new run simply steps at start.
-    - Platform breakpoints (DA-18).
+1.02. Not in this slice: Application quiescence/suspension and resource
+release (G6); long external waits off the ApplicationRun lane (G1e); general
+scheduling, Flow routing, durable queues or continuations, cross-Application
+arbitration; platform breakpoints; automatic retries.
+
+1.03. Division of responsibility: the Application owns work selection (what a
+step does, from its committed state); the platform owns execution opportunity
+(when a step or submitted Job may run, admission, shutdown).
 
 
-2. THE EXECUTOR
-===============
+2. DECLARATION AND ACTIVATION
+=============================
 
-2.01. Each ApplicationRun whose AppPack declares a step capability has exactly
-one executor. It is part of the run's realization, created at run start and
-stopped before Pack unload. An AppPack without a step declaration keeps today's
-caller-driven behaviour (no executor), so existing Applications are unaffected.
+2.01. An AppPack opts in with a manifest declaration:
+    "application": {"step": "<capabilityId>"}
+Only kind "appPack" may carry it; unknown keys are rejected. The form leaves
+room for future quiescence eligibility (9.01).
 
-2.02. The executor runs Jobs one at a time on the ApplicationRun lane, in this
-order of preference at each boundary:
-    1. submitted Jobs, first in first out;
-    2. the step Job, when one is due.
-Submitted work therefore always reaches the Application before its own next
-step, matching AI Buddy's "input before work" rule.
+2.02. Validation happens during activation, not on the first asynchronous
+step: after the AppPack's CodeEntries are loaded and their registrations
+published, the declared capability must exist, be registered by a CodeEntry of
+the declaring AppPack, and be invocable as a Job. Otherwise activation fails
+with no executor ever created.
 
-2.03. Hosts and other threads interact only through thread-safe requests:
-    submit(capability, payload) -> Job      queue work (external input, developer
-                                            interventions); wakes the executor
-    wake()                                  run a step soon (reason "wake")
-    pause() / resume()                      stop / restart starting new Jobs at
-                                            the next boundary; the running Job
-                                            finishes
-    snapshot()                              phase, current Job, queued count,
-                                            next step time, last fault
-Reads that are not Jobs (invokeCapability of read-only capabilities) keep
-working while the executor is idle, sleeping or paused, serialized by the lane.
-
-2.04. Phases: starting, running (a Job is executing), sleeping (until a time),
-idle (until an event), paused (by the host), faulted (a step failed or returned
-an invalid outcome; behaves like paused until resumed), stopping, stopped.
-
-2.05. Cancellation is per Job (DA-19): the host keeps the Job handle from
-submit() or from snapshot() and requests cancellation; the executor does not
-invent its own interrupt. Stopping the executor at run shutdown requests
-cancellation of nothing by default: it stops starting work and waits a bounded
-time for the running Job; the host may cancel it explicitly.
+2.03. An AppPack without the declaration keeps today's caller-driven
+behaviour exactly; no executor exists and runJob/invokeCapability are
+unchanged for that run.
 
 
-3. THE STEP CONTRACT
-====================
-
-3.01. The AppPack declares one step capability. The executor invokes it as an
-ordinary Job (OrchestrationUnit, transaction, cancellation) with payload:
-    {"reason": "start" | "event" | "due" | "continue" | "wake" | "resume",
-     "now": <platform clock, ISO-8601 with offset>}
-
-3.02. The step does at most one bounded unit of the Application's own work and
-returns exactly one outcome:
-    {"next": "now"}               more work is ready: step again at the next
-                                  boundary (after any submitted work)
-    {"next": "at", "at": <ISO>}   sleep until that time unless an event or
-                                  wake arrives first
-    {"next": "idle"}              sleep until an event or wake
-An invalid outcome or a failed step Job faults the executor (2.04); the
-Application's committed state is unaffected beyond what the Job committed.
-
-3.03. Events: completion of any submitted Job counts as an event and makes a
-step due (reason "event"). Submitted Jobs are the only event source in this
-slice; Flow Invocations and Subscriptions route into the same queue later.
-
-3.04. Time: "at" is wall-clock (the Application's domain time). The executor
-converts it to a monotonic wait using the clock, re-checks at most every 60 s
-so a clock change cannot strand it, and never polls the Application to find
-out whether work is due.
-
-3.05. What a step is for the Application is Application meaning. For AI Buddy
-one step is one phase of its cycle (prepare, execute, process, deliver), chosen
-from its committed state; a developer breakpoint is simply a step outcome of
-"idle" until a continue arrives as a submitted Job (2.03, 3.03).
-
-
-4. DELIVERY OF RESULTS TO THE HOST
-==================================
-
-4.01. Applications already publish what the outside world should see through
-their own state and capabilities (AI Buddy's outbox). The executor adds no
-output channel. A host observes Job completion (5) and reads capabilities.
-
-4.02. The browser frontend's delivery seam (browser-frontend-checkpoint-01 3.03)
-becomes: frontend Invocations are submitted as Jobs (or mapped to Application
-requests that submit them); the loop owner role moves from Application host
-code to the executor.
-
-
-5. JOB COMPLETION
+3. ADMISSION (R1)
 =================
 
-5.01. Job gains wait(timeout) and addDoneCallback(callback). Callbacks run
-after the terminal state is recorded, outside runtime lanes, on the executing
-thread; exceptions in callbacks are isolated and traced, never change the Job.
+3.01. For an opted-in ApplicationRun the executor is the only admission path
+for top-level Jobs. runJob called by anything other than the executor's worker
+raises an admission error and starts nothing; hosts use submit() instead.
 
-5.02. submit() returns the Pending Job immediately; its lifecycle is the
-ordinary DA-19 lifecycle (queued means Pending).
+3.02. Legitimate nested execution is preserved: capability calls made from
+inside an admitted Job (ctx.capabilities.call, the LLM processing pipeline's
+helper invocations) run within that Job's boundary as today. The executor
+marks its admitted Job with an execution-scope marker; nested calls are
+recognized by that marker, not by thread identity alone.
 
-
-6. CLOCK
-========
-
-6.01. The RuntimeHost owns a Clock (now() with local offset; monotonic() for
-waits). Tests inject a controllable clock. CodeEntries read ctx.clock.now().
-The executor stamps "now" into step payloads from the same clock.
-
-6.02. Applications that pass time in payloads today (AI Buddy) may keep doing
-so; ctx.clock is the source going forward.
+3.03. Top-level invokeCapability from outside an admitted Job on an opted-in
+run is likewise refused, except through the inspection path (5).
 
 
-7. LIFECYCLE INTEGRATION
-========================
+4. THE EXECUTOR
+===============
 
-7.01. Create/load and hooks are unchanged. After onApplicationRun returns, the
-executor starts and steps with reason "start".
+4.01. One worker per opted-in ApplicationRun. Thread-safe requests:
+    submit(capabilityId, payload) -> Job   queue work; own AppPack's
+                                           capabilities only in this slice (not
+                                           a permanent assumption)
+    wake()                                 request a step opportunity
+    pause() / resume()                     stop / restart starting new Jobs at
+                                           the next boundary
+    stop(timeout) -> StopOutcome           see 7
+    snapshot()                             see 4.06
 
-7.02. Run shutdown stops the executor first (bounded wait for the running Job),
-then the existing Pack cleanup and save ordering continue. A step that is
-running when the host stops is not repeated by the next run; the Application's
-own state decides what continues (05.05 of architecture: an uncertain completion
-is not permission to repeat).
+4.02. Boundary selection is deterministic: (1) the oldest submitted Job,
+first in first out; (2) the step, when a step opportunity is pending or due.
+Submitted input always reaches the Application before its own next step.
+
+4.03. Step opportunities are coalesced, input Jobs are not. Each submitted Job
+that reaches execution creates a step opportunity regardless of its terminal
+outcome; a submitted Job cancelled before it started does not.
+
+4.04. Wake requests are never lost: wake(), a submitted Job's completion,
+resume() and clock advancement increment a wake generation under the executor
+lock. A step's "idle" or "at" outcome only puts the executor to sleep if no
+generation increment happened since that step was admitted; otherwise the next
+step opportunity is taken at once. The same check covers the race between
+deciding to wait and registering the wait.
+
+4.05. Phases and control state are separate. Phase: starting, running,
+sleeping (until a time), idle (until an event), paused, faulted, stopping,
+stopped, unsafe. Control requests: pauseRequested, stopRequested. A running
+Job with pause requested reports phase running and pauseRequested true, never
+paused.
+
+4.06. snapshot() returns a coherent copy taken under the executor lock: phase,
+control requests, current Job (id, capability, kind submitted|step, start
+time), queued count and the oldest queued Job ids, next step time, wake
+generation, last fault (kind, reason, Job id), admission state (open, closed).
+
+4.07. Cancellation is per Job (DA-19): hosts cancel through the Job handle
+from submit() or from snapshot(). A cancelled step is not a fault: the
+executor returns to boundary selection (submitted work first) and treats it as
+a step opportunity only if one was pending.
 
 
-8. TRACING
-==========
+5. INSPECTION (R5)
+==================
 
-8.01. Executor phase changes, step outcomes, faults, submissions and wake
-reasons are traced with applicationRunId and jobId. Step payloads and results
-are not traced beyond their outcome kind and time.
+5.01. invokeInspection(capabilityId, payload) is the narrow read path for
+hosts on opted-in runs. It runs the capability with an inspection context: the
+memory facade can load and describe but cannot open transactions; IO is read
+only; LLM execution, process execution and capability registration are not
+available; nested capability calls are inspection calls too. Any attempt to
+mutate raises and leaves state untouched.
+
+5.02. Inspection is serialized by the ApplicationRun lane; while a Job holds
+the lane an inspection waits for it. No responsiveness during a running Job is
+promised (that is G1e).
+
+5.03. No general capability classification is introduced: the boundary is the
+inspection context, not a declared read-only flag.
+
+
+6. THE STEP CONTRACT
+====================
+
+6.01. The executor invokes the declared step capability as an ordinary Job
+with payload {"reason": ..., "now": <clock, ISO-8601 with offset>}. Reason is
+descriptive only ("start", "event", "due", "wake", "resume", "continue"); when
+several apply the executor reports the first in that order. The step selects
+its work from committed Application state, not from the reason.
+
+6.02. The step does at most one bounded unit of work and returns exactly one
+directive:
+    {"next": "now"}                more work is ready
+    {"next": "at", "at": <ISO>}    sleep until then (wake or events first);
+                                   an "at" in the past is due at once
+    {"next": "idle"}               sleep until an event or wake
+"at" must carry an offset; naive times are invalid directives.
+
+6.03. Outcomes are distinguished:
+    a. the step Job failed before its transaction was accepted: recoverable
+       fault; executor paused with the reason; nothing committed;
+    b. the step Job succeeded (state committed) but its directive is invalid:
+       recoverable fault; committed state stays committed; executor paused;
+    c. the step Job was cancelled: not a fault (4.07);
+    d. execution raised without a terminal Job, or authority (transaction,
+       IO transaction, OrchestrationUnit) may be unresolved: unsafe fault (8).
+No outcome is retried automatically.
+
+
+7. SHUTDOWN (R2, R4)
+====================
+
+7.01. stop(timeout) runs outside host and runtime locks. It atomically closes
+admission (later submit() raises), cancels every queued Job that has not
+started (observable Cancelled with callbacks), requests no cancellation of the
+running Job, and waits up to timeout for the running Job to reach a terminal
+state and the worker to exit.
+
+7.02. If the wait expires, stop returns StopOutcome(incomplete) naming the
+running Job. Shutdown is then incomplete, not finished: the ApplicationRun
+stays registered with its host, its Packs stay loaded, its execution resources
+stay owned. The host reports the incomplete shutdown and may cancel the Job
+through its handle and call stop again; stop is idempotent and retryable.
+
+7.03. Only after stop returns complete does the existing close path run (Pack
+unload, LLM and execution-resource cleanup, unregistration). RuntimeHost
+closeApplicationRun and stop are reordered accordingly: executors are stopped
+first and outside the host lane; a run whose executor is incomplete is not
+popped from host tables and its resources are not closed; host stop reports
+incomplete and remains retryable. The 30 s default is a wait policy, not a
+resource lifetime limit.
+
+7.04. A Job that was running when its run stopped is not repeated by a later
+run (architecture 05.05); the Application's committed state decides what
+continues.
+
+
+8. FAILURE CONTAINMENT (R7)
+===========================
+
+8.01. Prerequisite: G8 is fixed first. Today an open nested transaction left by
+a failed capability prevents the Job's own transaction from aborting, and runJob
+raises from its failure handler without a terminal Job. The fix: invocation
+cleanup aborts still-open nested transactions through the internal transaction
+handle (not through the facade that is already invalid), and runJob records a
+terminal Failed Job carrying primary and cleanup evidence on every failure path.
+
+8.02. The worker's outer boundary catches anything runJob or a step raises.
+If a terminal Job was recorded and authority is resolved, it is a recoverable
+fault (6.03 a/b). Otherwise the executor enters phase unsafe: it keeps the
+primary error, admits nothing more (submit raises, wake ignored), and only
+stop/close is possible. The worker never dies silently and never reports
+success for unfinished work.
 
 
 9. FUTURE (RECORDED, NOT IN THIS SLICE)
 =======================================
 
-9.01. Quiescence eligibility: an AppPack (manifest) and/or the Application
-config declares whether it may be asked to go quiescent and how important it
-is to keep running. When many Applications run, the host may request
-non-important ones to go quiescent while important ones continue. The executor
-phases are the natural place for the quiescent state; G6's design governs what
-quiescence releases.
-
-9.02. Platform breakpoints (DA-18): AI Buddy's pause ids, stale-pause handling
-and prompt/output edit points are the first experience to generalize.
-
-9.03. Long waits off the lane (G1e): a step that starts external work could
-return Accepted-style continuation instead of holding the lane until the model
-finishes.
-
-9.04. Flow event sources: Invocations and Subscription Emits feed the same
-queue as submitted Jobs.
+9.01. Quiescence eligibility: AppPack manifest and/or config declares whether
+the Application may be asked to go quiescent and how important it is to keep
+running; hosts with many Applications can then request non-important ones to
+go quiescent. G6's design governs what quiescence releases.
+9.02. Platform breakpoints (DA-18), from AI Buddy's pause ids and stale-pause
+handling.
+9.03. Long waits off the lane (G1e).
+9.04. Flow Invocations and Subscription Emits as event sources for the queue.
+9.05. Submission of other Packs' capabilities.
 
 
-10. OPEN QUESTIONS
+10. JOB COMPLETION (R3)
+=======================
+
+10.01. Job gains wait(timeout) and addDoneCallback(callback).
+
+10.02. Terminal publication and callback dispatch are separate. The terminal
+state is recorded under the Job lock and wait() waiters are woken then.
+Callbacks are dispatched only at a dispatch point outside every Job, runtime,
+host and executor lock and outside decorated execution boundaries:
+    - a Job finished by runJob: when runJob has fully returned (the executor
+      worker after its call; runJob's own outermost wrapper for caller-driven
+      runs);
+    - a Pending Job cancelled by requestCancellation: on the cancelling thread
+      after the Job lock is released;
+    - a registration on an already terminal Job: on the registering thread,
+      immediately, subject to the same rule.
+Each registration is dispatched exactly once; a failing callback is isolated,
+traced, and never changes the Job or prevents other callbacks.
+
+10.03. Callbacks are notifications: they may submit work or wake an executor;
+they must not synchronously wait for work that needs the same executor.
+
+10.04. Start/cancel handoff is atomic: Job.tryStart() starts a Pending Job or
+reports that it was cancelled, in one Job-locked step; runJob and the executor
+use it instead of checking state and then calling start().
+
+
+11. CLOCK
+=========
+
+11.01. The RuntimeHost owns a Clock: now() returns an aware datetime with the
+local offset (one return type); monotonic() returns seconds. Serialization to
+ISO-8601 happens at payload boundaries only. Naive datetimes are rejected.
+
+11.02. Waits are monotonic with wall-clock reconciliation at most every 60 s;
+this is internal clock reconciliation, not Application polling.
+
+11.03. ManualClock (tests) records advances with a generation counter so an
+advance between a waiter's check and its wait is never lost.
+
+11.04. CodeEntries read ctx.clock.now(); Applications may keep accepting "now"
+in payloads during migration.
+
+
+12. REVIEW DISPOSITION (ANALYZER REVIEW 2026-11-27)
+==================================================
+
+12.01. R1 admission: accepted -> section 3.
+12.02. R2 shutdown ownership: accepted -> section 7.
+12.03. R3 callbacks: accepted -> section 10.
+12.04. R4 pending shutdown work: accepted (cancel unstarted observably; no
+automatic cancel of running work; no recreation) -> 7.01, 10.04.
+12.05. R5 inspection: accepted, narrow inspection context -> section 5.
+12.06. R6 startup: accepted -> 2.02 and 13.
+12.07. R7 G8 and unexpected failures: accepted; G8 fixed first -> section 8.
+12.08. Contract clarifications: all accepted -> 4.03-4.07, 6.01-6.03, 11.
+12.09. AI Buddy adoption notes: accepted -> plan section 4.
+
+
+13. STARTUP ORDER (R6)
+======================
+
+13.01. The executor is created during activation (2.02) but admits and starts
+nothing until the run is fully published: after onApplicationRun, after the
+lifecycle attempt completes, after host registration, outside host and runtime
+lanes. RuntimeHost._initialize starts it after _register and after leaving its
+lane; standalone ApplicationLifecycle.create/load start it after _execute
+returns.
+
+13.02. Any failure before that point tears down without ever starting a
+worker; a failure to start the worker itself is an activation failure with the
+same cleanup as today.
+
+
+14. OPEN QUESTIONS
 ==================
 
-10.01. Declaration form: manifest field on the AppPack (proposed
-"application": {"step": "<capabilityId>"}) versus a lifecycle hook name. The
-manifest form keeps room for 9.01.
-10.02. Whether submit() should accept only capabilities of the run's own
-AppPack in this slice (proposed yes).
-10.03. Bounded wait at shutdown (proposed 30 s, configurable by the host).
-10.04. Whether a faulted executor should retry automatically (proposed no).
+14.01. Whether inspection contexts should allow describe-only access to Pack
+files beyond read-only IO (proposed: same read-only IO as Jobs' read view).
+14.02. Host-facing shape of StopOutcome and incomplete-shutdown reporting in
+RuntimeHost.stop (proposed: an exception group carrying typed incomplete
+dispositions, consistent with existing cleanup reporting).

@@ -1,0 +1,56 @@
+FROM
+ai-buddy
+
+TO
+integration
+
+SUBJECT
+Disposition of the application execution analyzer review; revised checkpoint and plan
+
+STATUS
+response
+
+CONTEXT
+Reply to 2026-11-27-application-execution-step-contract-analyzer-review.txt.
+I checked the cited source at 06b301a and the findings hold: runJob is public
+and caller-driven; runJob records terminal states inside the runtime lane and
+decorated boundaries; Job.start is check-then-act in runJob;
+closeApplicationRun pops the runtime before cleanup and stop closes execution
+resources under the host lane; lifecycle.resume completes the attempt after
+_resumeCreate/_resumeLoad return; invokeCapability runs with
+allowExecution=True; G8 still makes runJob raise from its failure handler.
+
+REQUEST / INFORMATION
+All blocking findings and clarifications are accepted; no disagreements.
+Revision 2 of both documents (same paths) records them:
+- design/working/application-execution-checkpoint-01.txt
+  R1 admission -> sections 3 and 4.01; R2 shutdown ownership -> 7.02-7.03;
+  R3 callbacks -> 10.02-10.03; R4 pending work -> 7.01 and 10.04 (tryStart);
+  R5 inspection -> 5 (inspection context, no classification system);
+  R6 startup -> 2.02 and 13; R7 -> 8 (G8 first, recoverable vs unsafe);
+  clarifications -> 4.03-4.07, 6.01-6.03, 11; disposition table section 12.
+- design/working/application-execution-implementation-plan-01.txt
+  ordering as recommended: G8 fix; building blocks; executor core; lifecycle
+  and host integration; independent platform acceptance; explicit AI Buddy
+  adoption. Regressions listed per step include every one in the review.
+AI Buddy adoption notes accepted (plan 5.02): outbox delivery and
+acknowledgement stay distinct effects; debugger state is run-scoped, not
+durable, with run-qualified pause ids; phases reused inside one step Job
+without nested Job or independent transaction authority.
+
+Remaining open points for the design owner / Integration (checkpoint 14):
+inspection access to Pack files; host-facing shape of incomplete shutdown.
+
+OWNERSHIP EXPECTATION
+integration / platform for plan steps 2-5; AI Buddy for step 6 after an
+accepted exact SHA.
+
+BLOCKING
+No new blocker; implementation still awaits Integration's admission of the
+revised plan. AI Buddy keeps its application-owned loop meanwhile.
+
+RELEVANT MATERIAL
+The two revised documents above; the analyzer review; the G1 and G8 requests
+(2026-11-27-ai-buddy-long-lived-application-execution.txt,
+2026-11-27-ai-buddy-open-transaction-job-failure-defect.txt).
+Platform ref examined: integration 06b301a.
