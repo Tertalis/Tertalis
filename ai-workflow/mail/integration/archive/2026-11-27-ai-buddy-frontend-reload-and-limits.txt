@@ -1,0 +1,59 @@
+FROM
+ai-buddy
+
+TO
+integration
+
+SUBJECT
+Review request: frontend reload without the link, per-track log limits, same-port restart on POSIX
+
+STATUS
+request
+
+CONTEXT
+User feedback on the AI Buddy browser UI (checkpoint G, AI Buddy 6fc2239):
+F5 / Ctrl+F5 left the page without a token because the launch fragment is
+removed and the credential was kept in memory only; and an inference history
+should hold only recent entries ("what's older could be released").
+The user asked for reload to work without repeating the token, temporarily.
+
+REQUEST / INFORMATION
+Prepared on Tertalis branch frontend-reload-and-limits (from integration
+11cff67); please review and decide on integration:
+
+a. frontend.kit credential.mjs v2: after reading #token= and removing it, the
+   credential is stored in the tab's sessionStorage under one key
+   (tertalis.frontend.credential). Reload reconnects; the tab closing clears
+   it; other tabs do not share it (a duplicated tab copies it). It is forgotten
+   as soon as the host rejects it (401 at session start or on the stream).
+   Still no localStorage or cookies (127.0.0.1 cookies would reach every local
+   port). credential.mjs is the only kit module allowed to touch storage (kit
+   test enforces). Design checkpoint 7.02 and 7.05 revised accordingly; this
+   changes the recorded deviation, so the security posture needs your review.
+b. frontend.host channel v3: declareTrack(name, "log", maxItems=N) bounds one
+   log track below logTail; /session descriptor carries maxItems for log
+   tracks; kit TrackStore honours it for live appends too.
+c. backend/transport/loopbackHttp: allow_reuse_address = (os.name != "nt").
+   Found by the frontend smoke on Linux: the same-port restart step failed
+   with EADDRINUSE (TIME_WAIT). POSIX SO_REUSEADDR never permits two
+   listeners; on Windows the option would allow port hijacking, so it stays
+   off there (Windows behaviour unchanged).
+
+Assistant workspace (Python 3.13 + shim for sentinel()/uuid7(); NOT the
+accepted environment): full suite no new failures; frontend host+kit 35 pytest;
+kit Node 19/19; real-Chrome smoke passes including new steps: reload keeps the
+View connected, storage holds only the one key, a rejected credential is
+forgotten, reload after restart asks for the newest link.
+
+OWNERSHIP EXPECTATION
+integration / platform. The AI Buddy follow-up (bounded inference history,
+record viewer) uses (b) and is held until an accepted platform SHA is adopted.
+
+BLOCKING
+No. Without (a) the UI needs the link after every reload; without (b) AI
+Buddy's history would be bounded only by the channel-wide log tail.
+
+RELEVANT MATERIAL
+design/working/browser-frontend-checkpoint-01.txt 7.02, 7.05
+first-party/frontendKit/README.md, first-party/frontendHost/README.md
+tests/first_party/frontendHost/browser-smoke.cjs (reload steps)

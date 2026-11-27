@@ -26,6 +26,14 @@ DONE AI Buddy platform adoption: App 3b5fac2a / Tertalis 82772a2f,
 NEXT AI Buddy browser UI/loop integration remains separately scoped work.
 Evidence: knowledge/browser-frontend-integration-2026-11-27.txt.
 
+FRONTEND REFRESH / AI BUDDY HISTORY - 2026-11-27
+DONE Platform f26210af accepted; AI Buddy 51809996 adopts exact shared
+source and adds bounded history and on-demand record details.
+DONE Windows 1815/1891 tests, affected Ruff, 26 Node contracts and platform
+plus actual Application Chromium refresh/history/detail checks pass.
+NOW Review complete locally. NEXT No further feature automatically assigned.
+Evidence: knowledge/ai-buddy-history-refresh-review-2026-11-27.txt.
+
 READING THIS BOARD
 ------------------
 This is a concise navigation/progress projection, not a new task authority or an

@@ -1,0 +1,86 @@
+AI BUDDY HISTORY AND FRONTEND REFRESH - INDEPENDENT REVIEW
+=========================================================
+Date: 2026-11-27. Authority: user requested review of both local working trees,
+noting that AI Buddy also contains a shared backend change, and commits if fine.
+
+ACCEPTED REFS AND OWNERSHIP
+---------------------------
+Tertalis/Tertalis integration: f26210af0d179dc29ecc0543cbbb035efa7ebc5d
+  Parent: 11cff677 (exact parent available from Git).
+Tertalis/Tertalis-AI-Buddy integration: 518099961b82b5b375df3e0db72867e1b2f9888c
+  Parent: 3faf9ed13510e92e2a2fbe991e2fe79cabd3fff2.
+Shared changes committed in platform first; Application then adopts the exact
+282-path shared projection, with its own history/UI source on its own ref.
+No complete Application branch merged into platform; no Application-exclusive
+source or tests imported upstream. All shared blob hashes and modes match.
+Application committed ai-workflow tree contains exactly index.txt; root docs/
+and design/ absent. Root Application README records the new exact platform SHA.
+No push performed by this review; both implementation commits are local.
+
+REVIEWED BEHAVIOR
+-----------------
+Platform: launch credential removed from fragment and retained only under one
+sessionStorage key for reload. Fresh fragment takes precedence; HTTP 401 at
+bootstrap or stream clears the remembered credential. Blocked storage degrades
+to reopening the link. No localStorage, cookies or IndexedDB added. This is
+an intentional revision of the earlier memory-only posture requested for
+refresh convenience and recorded in the working design checkpoint. Scripts
+in the same origin can read the tab credential; duplicated/opener tabs can
+inherit a sessionStorage copy, and browser session restoration affects lifetime.
+This remains a local single-user posture, not a remote authorization model.
+
+Log declaration adds optional maxItems, session descriptors expose it, and the
+browser mirror applies the advertised bound during snapshots and live appends.
+AI Buddy retains up to 200 recent summaries; full inference records stay in
+Application state and are loaded on demand, with one visible record viewer.
+Viewer shows sent/received text and original versus developer-edited content;
+diagnostic record IDs open it. Closing clears detail DOM content.
+This does not solve persisted record growth (existing G7/backlog).
+
+Shared LoopbackHttpServer now enables SO_REUSEADDR off Windows for fixed-port
+restart. Windows behavior stays disabled. Added regression verifies actual
+socket option and rejection of a second listener. Windows execution confirmed;
+POSIX behavior was inspected but NOT independently executed on this machine.
+
+No blocking implementation finding reproduced. Review added the transport
+regression and corrected contradictory kit storage rules and stale root
+Application README claims. All pre-existing feature changes preserved.
+
+ACTUAL VERIFICATION
+-------------------
+Windows; Python 3.15.0b4 in each repository; Node v23.11.0;
+Chromium 152.0.7977.65; installed Ruff with repository configuration.
+  python-embedded/python.exe -X frozen_modules=off -m pytest tests -q
+    Platform supplied tree: 1814 passed / 20.21s; final 1815 / 22.44s.
+    Application supplied tree: 1890 passed / 28.78s; final 1891 / 30.00s.
+    Zero failures/skips. Extra final test is listener/reuse regression.
+  node --test tests/first_party/applications/aiBuddy/ui.test.mjs
+    tests/first_party/frontendKit/kit.test.mjs
+    26/26 passed (7 Application + 19 kit).
+  python-embedded/Scripts/ruff.exe check <affected Python paths>
+    PASS: loopback transport, frontend host, transport/host tests, plus
+    Application frontendBridge.py and test_checkpointG.py downstream.
+  Platform tests/first_party/frontendHost/smoke.py with local Chromium and
+    temporary playwright-core: PASS five Views, sixth rejection, conflict,
+    same-port restart, pending action unknown, reload reuses credential,
+    rejected credential forgotten, reload after restart asks for the link.
+  Actual AI Buddy AppPack with the existing scripted-provider test Harness,
+    temporary isolated save store, real host/kit, and headless Chromium:
+    PASS two completed inferences rendered newest first; opening history
+    loads the submitted prompt and generated response from authoritative
+    state; diagnostic references open records; Close clears viewer content;
+    normal reload and cache-disabled reload retain history; no page errors;
+    token absent from address bar and localStorage unused.
+  Git diff whitespace checks PASS; shared 282-path hashes/modes exact;
+    staged and committed Application routing/docs/design invariants PASS.
+No new real llama.cpp request, model-quality verification, exhaustive security
+audit or POSIX physical run claimed. Embedded Python emits its known home
+warning but all listed checks completed successfully.
+
+RETENTION AND CONTINUATION
+---------------------------
+Regression inputs/harness changes tracked. Temporary browser runner, saves,
+result output and screenshots remain under the host temp directory and are
+not durable screenshot evidence. This record retains actual observed outcomes
+and exact source refs. Existing Application defects and pending G1/G7/G8
+work remain in STATE. No new work automatically assigned by this acceptance.

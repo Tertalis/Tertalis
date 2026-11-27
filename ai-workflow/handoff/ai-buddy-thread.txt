@@ -1,16 +1,16 @@
 CURRENT UPDATE - 2026-11-27
 ---------------------------
-Explicit user-authorized platform adoption accepted:
-AI Buddy 3b5fac2af441f14ceb070c38d495c35e0dada5e0 on integration,
-Tertalis 82772a2ff6cc48a9fb8e776654b2a14bb119b6d7 on integration.
-All 282 shared paths match; 17 application paths and three untracked design
-inputs preserved. Combined 1876 tests pass, zero skips; tools and frontend
-fixture five-View/restart Chromium smoke pass. No application code adaptation
-or browser UI implementation. No new real-model verification; existing
-Application defects remain. Acceptance record:
-knowledge/ai-buddy-platform-adoption-2026-11-27.txt.
-Earlier pending-commit and no-independent-verification text is historical;
-current STATE takes precedence. Refresh barriers before further work.
+Accepted Application 518099961b82b5b375df3e0db72867e1b2f9888c
+and exact Tertalis platform f26210af0d179dc29ecc0543cbbb035efa7ebc5d.
+User-directed review of both working trees accepted platform refresh/limits
+and loopback address-reuse changes, then the Application inference-history
+and record-viewer feature. 1815 platform / 1891 combined Windows Python 3.15
+tests pass; 26 Node contracts and affected Python Ruff pass. Platform and
+actual Application Chromium smoke pass (scripted provider; no real model).
+Shared 282-path projection exact; Application routing/docs boundaries hold.
+Review: knowledge/ai-buddy-history-refresh-review-2026-11-27.txt.
+Earlier adoption/no-browser-test wording is historical; current STATE wins.
+No further application feature or platform upgrade automatically assigned.
 
 TERTALIS AI BUDDY THREAD HANDOFF
 ===============================

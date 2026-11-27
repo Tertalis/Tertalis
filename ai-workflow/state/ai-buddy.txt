@@ -6,7 +6,9 @@ MIGRATION CLOSURE VERIFICATION - 2026-11-27
 User reports successful tests in all six migrated repositories. Exact tested
 local SHAs, commands, counts, runtimes and logs for this report were not
 supplied; no independent execution is claimed.
-Retained platform baseline: f30c393f7d723f9f8a897ff74a054aed1a1e4cd4 (synchronized; equivalent de124f3 used in user-verified materialization).
+Historical migration baseline: f30c393f7d723f9f8a897ff74a054aed1a1e4cd4
+(synchronized; equivalent de124f3 used in user-verified materialization).
+Current accepted platform adoption is recorded below.
 Evidence: ai-workflow/knowledge/application-platform-provenance-2026-11-27.txt.
 Migration is closed by user direction; ordinary ownership and integration rules
 remain. No new platform adoption or assignment is implied.
@@ -19,22 +21,20 @@ Purpose: AI Buddy application and independent Tertalis design/implementation
          application.
 Owner: AI Buddy thread (user-directed).
 Working repository and branch/ref: Tertalis/Tertalis-AI-Buddy, branch integration.
-  Audited HEAD: 2a905b8548e189d07e2a5b4cbbca3d4ecae6d6b3 (2026-11-27).
+  Current accepted HEAD: 518099961b82b5b375df3e0db72867e1b2f9888c (2026-11-27).
+    Recent inference history, record viewer and refresh support; previous
+    checkpoint G 6fc2239 and select-colour fix 3faf9ed are included.
+  Prior accepted platform-adoption HEAD: 3b5fac2af441f14ceb070c38d495c35e0dada5e0.
+  Previous application HEAD: 2a905b8548e189d07e2a5b4cbbca3d4ecae6d6b3.
   Source/test commit: 9bb86922877ce7ecd9deac18cc1130b0421b7faa.
 Parent/base relationship: Application repository consuming a pinned Tertalis
   platform snapshot (protocol 12.12).
-Last synchronized Integration ref/commit: recorded synchronization to
-  f30c393f7d723f9f8a897ff74a054aed1a1e4cd4 (2026-11-15). On 2026-11-27 the
-  platform projection at 80b3f23 (backend/, first-party/, tests/, scripts/,
-  tools/, vendor/, root pyproject/requirements/setup files) was byte-identical to
-  Tertalis/Tertalis integration de124f3be8f1b6c025ea528e5470b0d14efdde42. This
-  is a comparison, not an Integrator acceptance.
-  2026-11-27 (user-directed, pending commit and user verification): platform
-  adoption of Tertalis integration 82772a2ff6cc48a9fb8e776654b2a14bb119b6d7
-  (browser frontend merge 3424d434) prepared as a complete projection of the
-  same paths; the only changes are the accepted browser-frontend files. No
-  platform file is deleted; ai-workflow/, design/, docs/ and root
-  AGENTS/README/SETUP stay Application-local (12.18, 12.19).
+Last accepted Tertalis platform commit:
+  f26210af0d179dc29ecc0543cbbb035efa7ebc5d (integration, 2026-11-27).
+  User-authorized review of both checkouts accepted the shared frontend/backend
+  changes first, then AI Buddy's exact 282-path adoption and application changes.
+  Previous accepted platform: 82772a2ff6cc48a9fb8e776654b2a14bb119b6d7.
+  Review: knowledge/ai-buddy-history-refresh-review-2026-11-27.txt.
 
 CURRENT POSITION
 ----------------
@@ -49,18 +49,22 @@ Implementation status:
                                             README, implementation design)
     tests/first_party/applications/aiBuddy/ (63 runtime-contract tests)
   It is application-exclusive (12.08/12.10) and must not be committed to
-  Tertalis/Tertalis. Source commit verified; local ignore rule relocated in
-  2a905b8; root shared files now match the platform projection at 3f85c86.
-  This comparison is not a new integration acceptance.
+  Tertalis/Tertalis. All 17 application source/test/local-ignore paths remain
+  unchanged through the accepted platform adoption. Root orientation was
+  corrected to describe the implemented AppPack and exact adopted platform.
   The commit to AI Buddy repository: 9bb86922877ce7ecd9deac18cc1130b0421b7faa
 
 Verified/exercised behavior (user-reported, Python 3.15, user's Windows host,
   local checkout with Tertalis de124f3 platform source):
 - checkpoint tests A-F passed after the corrections listed in the record; live
   Stage 1-6 demonstrations against a user-run llama-server reported working.
-- No independent or Integration verification. User subsequently reported
-  successful tests in all six migrated repositories (see closure above); exact
-  test selection and local revision were not specified.
+- Independent Windows/Python 3.15 review at the current accepted combination:
+  1891 combined tests pass, zero skips (1815 platform + 76 application tests);
+  affected Python Ruff and 26 Node contracts pass. Platform Chromium smoke
+  covers five Views, restart and refresh/token cleanup. Actual AI Buddy with
+  a scripted provider passes history/detail/diagnostic-link/viewer-close and
+  normal/cache-disabled reload checks. No new real-model run was performed.
+  Earlier native-tool/launcher verification remains historical at 3b5fac2a.
 
 Backend/shared capability available but not yet adopted by this Application:
 - Managed llama.cpp with ER-03 trusted host composition, grants and explicit
@@ -73,9 +77,9 @@ Backend/shared capability available but not yet adopted by this Application:
   stays selectable.
 
 Incomplete behavior / known application defects:
-- (Fixed in checkpoint G, pending user verification) Stale breakpoint: a pause
-  whose inference is no longer prepared/generated is now cleared with a
-  diagnostic instead of failing; regression tests in test_checkpointG.py.
+- (Fixed in checkpoint G 6fc2239; independent runtime-contract verification passed; live-model verification not recorded) Stale
+  breakpoint: a pause whose inference is no longer prepared/generated is now
+  cleared with a diagnostic instead of failing; tests in test_checkpointG.py.
 - Developer /interrupt discards partial output.
 - Inference records store prompts up to three times and outputs twice; saves
   happen after nearly every Job (contributes to SaveBundle growth).
@@ -124,16 +128,21 @@ CURRENT OBJECTIVE
    3424d43402086f13505e1f773178fdd6792dcabf (2026-11-27). Independent
    Windows checks: 1813 tests, kit Node 17/17, five-View/restart Chromium smoke.
    Review: knowledge/browser-frontend-integration-2026-11-27.txt.
-   AI Buddy step 5 (checkpoint G) materialized 2026-11-27, pending commit and
-   user verification on Python 3.15: platform adoption of 82772a2 plus
-   host/frontendBridge.py, pack/ui/ (browser main + library entries), launcher
-   --no-ui/--ui-port/--open and /ui, pause ids with conflict on stale browser
-   actions, tests test_checkpointG.py (10) and optional ui.test.mjs. Assistant
-   workspace (Python 3.13 + shim, not authoritative): AI Buddy 73 passed, no
-   new failures repo-wide; headless Chrome end-to-end: message/reply, breakpoint
-   edit and continue across two tabs, developer read, no token in URL or
-   storage. Deviation from plan 4.03a: idle polling kept, because the prepare
-   result carries no next-due time (G1).
+   Platform adoption COMPLETE: AI Buddy 3b5fac2a adopts Tertalis
+   82772a2f. Step 5 (checkpoint G) committed as AI Buddy 6fc2239 (+3faf9ed
+   UI fix): host/frontendBridge.py, pack/ui/, launcher --no-ui/--ui-port/
+   --open and /ui, pause ids with conflict on stale browser actions,
+   test_checkpointG.py and optional ui.test.mjs. Deviation from plan 4.03a:
+   idle polling kept (prepare result has no next-due time; G1). Checkpoint G
+   runtime-contract tests are included in the independent current verification.
+   Follow-up ACCEPTED 2026-11-27 after user-directed review:
+   a. Tertalis f26210af: tab sessionStorage credential for refresh,
+      per-track log limits, and POSIX-only address reuse (Windows stays off).
+   b. AI Buddy 51809996 adopts that exact platform and adds recent
+      inference summaries (up to 200), on-demand record detail and clickable
+      record references. Application source remains in its own repository.
+   Review evidence: knowledge/ai-buddy-history-refresh-review-2026-11-27.txt.
+
 4. Stage 7 behavioural experimentation on the running system (outside the
    materialization scope).
 
@@ -145,8 +154,9 @@ Outgoing (ai-workflow/mail/integration/inbox/):
 - 2026-11-27-ai-buddy-long-lived-application-execution.txt (G1, request)
 - 2026-11-27-ai-buddy-platform-pressure-findings.txt (G2-G6, finding)
 - Browser UI request reviewed/archived; platform accepted at 3424d434.
-  AI Buddy adoption of 82772a2 and checkpoint G prepared; awaiting commit
-  SHAs and user verification.
+  Pinned-platform adoption accepted at 3b5fac2a/82772a2f. Checkpoint G
+  committed (6fc2239). Refresh/limits review request handled and archived;
+  current accepted pair is 51809996/f26210af.
 Incoming: the four availability notices (2026-09-19 x2, 2026-11-03 x2) were
 reviewed and archived on 2026-11-27; their durable content is reflected above.
 No platform adoption is requested or authorized by any of them.

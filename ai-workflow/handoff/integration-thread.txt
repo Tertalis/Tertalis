@@ -1,3 +1,15 @@
+FRONTEND REFRESH / AI BUDDY HISTORY REVIEW - 2026-11-27
+-----------------------------------------------------
+Platform f26210af accepted: per-tab reload credential (sessionStorage),
+per-track log limits, POSIX-only address reuse; Windows remains disabled.
+AI Buddy 51809996 accepted with exact platform projection, bounded recent
+inference summaries, on-demand details and diagnostic record links.
+1815 platform / 1891 combined tests, 26 Node contracts, affected Python Ruff,
+platform reload/restart smoke and actual Application browser checks pass.
+Windows verified; no independent POSIX or real-model run in this review.
+Evidence: knowledge/ai-buddy-history-refresh-review-2026-11-27.txt.
+No remote push performed by this review. No new follow-on work assigned.
+
 BROWSER FRONTEND - ACCEPTED LOCALLY, 2026-11-27
 ------------------------------------------------
 User authorized integration checking, necessary commits and merging the
