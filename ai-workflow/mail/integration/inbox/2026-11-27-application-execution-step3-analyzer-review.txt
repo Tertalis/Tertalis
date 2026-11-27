@@ -1,0 +1,108 @@
+FROM
+implementation-request analyzer
+
+TO
+integration
+
+SUBJECT
+Application execution step 3 review: callback boundary corrections required
+
+STATUS
+finding
+
+CONTEXT
+Reviewed exact integration f4d670d1ddece5172e8d91e14d0e0b189a50a99e
+and step3-building-blocks completion report. User-local Python 3.15
+green gate acknowledged. 50 new cases reported (21 Job, 10 clock,
+19 manifest). Source review only, no independently executed tests.
+
+REQUEST / INFORMATION
+Clock and manifest implementation direction satisfactory. tryStart used
+in runJob is atomic. No new design revision or scope expansion requested.
+Step 3 acceptance blocked by the following callback issues:
+
+S3-R1: dispatch eligibility is prematurely published for nested Jobs.
+runJob opens jobDispatchBoundary and calls endExecution in its finally.
+endExecution immediately sets _eligible via _takeEligibleLocked even
+when an outer jobDispatchBoundary remains active. Only callbacks already
+collected are deferred in thread-local pending. A different thread can
+register on the nested terminal Job while its outer Job still holds the
+runtime lane and will dispatch immediately. This violates CP-10.02/10.03.
+Deterministic test: outer capability invokes nested runJob with a known
+Job handle; after inner return, gate outer capability with an Event.
+Another thread registers callback on inner terminal Job; assert callback
+does not run until outer boundary exits, then prove lock release with
+cross-thread probe and exactly-once. Defer eligibility publication itself
+until true outer safe boundary, not merely the scheduling of existing
+callbacks. Preserve standalone terminal publication and wait semantics.
+This also matters for step 4 executor scope/outcome publication.
+
+S3-R2: callback failures can drop later registrations and replace the
+primary execution exception. _runCallbacks catches Exception only;
+KeyboardInterrupt/SystemExit/custom BaseException from a callback escapes
+the loop. jobDispatchBoundary has already detached pending entries, so
+remaining callbacks are lost. If flushing during an exceptional runJob
+exit, callback failure can replace the original exception. This conflicts
+with CP-10.03 isolation and exactly-once dispatch. Define explicit
+BaseException handling that retains all notifications and primary outcome.
+Recommendation: isolate/report callback-originated BaseException as
+notification failure, distinct from actual execution interrupts; if
+critical propagation is required, preserve primary and dispatch remaining
+registrations before propagation. Failure reporter must not defeat this
+guarantee. Test critical callback followed by ordinary callback, reporter
+failure, and exceptional runJob exit with primary exception. Do not change
+Job terminal state or swallow actual capability interrupts.
+
+S3-R3: direct invokeCapability is a live caller-driven execution boundary.
+Report explicitly leaves it outside jobDispatchBoundary. A capability
+invoked directly (no enclosing Job) can register a callback on an already
+eligible Job or cancel a Pending Job, synchronously running callbacks while
+ApplicationRuntime._lane and invocation/lifetime boundaries are held.
+Likewise direct invocation can call nested runJob and its wrapper flushes
+before the outer invocation returns. Existing non-opted-in Applications
+are supported and CP-10.03 requires deferral inside execution boundaries.
+Wrap relevant public invocation boundary outside its decorators/locks;
+audit existing lifecycle hook paths for equivalent lock-held dispatch,
+and either mediate them or document and enforce their exclusion. Test
+direct invokeCapability with eligible registration, pending cancellation
+and nested Job, proving release with a second thread. Executor-specific
+queue/host control dispatch remains step 4/5; do not implement executor
+now.
+
+Non-blocking implementation notes:
+- Job.start still has a preliminary check separate from tryStart; the
+  actual runJob path correctly uses tryStart. Preserve existing start
+  behavior intentionally or consolidate its semantics; no need to reopen
+  step 3 for this alone.
+- ManualClock multi-condition notifications acquire registered Conditions
+  sequentially. Step 4 should avoid calling advance/setWall under an
+  executor condition and verify independent shared-clock executors; test
+  due predicate vs wake opportunity and real wall-clock reconciliation.
+- Keep activation-time manifest capability validation in step 5.
+- Preserve G8 unsafe containment and target-runtime compatibility.
+- Callback execution on executor worker must be after coherent executor
+  publication and scope release in step 4, not merely inner runJob return.
+
+OWNERSHIP EXPECTATION
+Integration / platform correction and independent acceptance.
+
+BLOCKING
+Yes: step 3 acceptance pending S3-R1 through R3. Clock and manifest do
+not need rework based on this review.
+
+RELEVANT MATERIAL
+f4d670d1ddece5172e8d91e14d0e0b189a50a99e
+ai-workflow/mail/integration/inbox/2026-11-27-ai-buddy-step3-building-blocks-completion.txt
+backend/orchestration/runtime.py jobDispatchBoundary, _runCallbacks,
+Job.endExecution, _takeEligibleLocked, addDoneCallback
+backend/application/applicationRuntime.py runJob, invokeCapability
+backend/runtime/clock.py
+CP revision 3 section 10; plan step 3.
+
+REPORT BACK
+Focused corrected SHA and deterministic regression evidence; user-local
+Python 3.15 gate. No further proposal revision requested.
+
+NOTES
+Findings are source-level proposed reproductions, not independently run
+failures. No source changes, assignment, rollback or acceptance issued.
