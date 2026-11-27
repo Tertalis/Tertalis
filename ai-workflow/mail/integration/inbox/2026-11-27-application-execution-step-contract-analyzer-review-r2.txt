@@ -1,0 +1,112 @@
+FROM
+implementation-request analyzer
+
+TO
+integration
+
+SUBJECT
+Application execution checkpoint/plan revision 2: follow-up review
+
+STATUS
+finding
+
+CONTEXT
+Reviewed revision 2 after user notification. All R1-R7 were incorporated.
+Architectural direction and staged approach supported. Independent G8 work
+can proceed subject to ordinary authorization; executor admission remains
+conditional on the following focused corrections. No expansion of scope.
+
+REQUEST / INFORMATION
+R8 (executor core): CP-4.07 cancellation only creates a step opportunity
+if one was pending. A cancelled inference step consumed its prior opportunity
+and has no returned directive; this can strand an active Application. A
+cancelled step creates one fresh opportunity unless paused/stopping/unsafe.
+An opportunity is not a retry of the cancelled Job; Application state and
+policy decide what to do next.
+
+R9 (executor core): CP-4.04 conflates clock advancement with work eligibility.
+Clock notifications re-evaluate due-time predicates, not create a step
+opportunity. Idle stays idle; future at stays asleep until due, absent other
+events. Separate generations/predicates for wake and clock reconciliation.
+Test advances before due, during a step, and while idle.
+
+R10 (Job completion): distinguish terminal publication from safe callback
+dispatch eligibility. Registration between these points must queue, not
+dispatch immediately. Clear execution admission marker before dispatch;
+dispatch on exceptional runJob exit after terminal publication too. Pending
+shutdown cancellations must dispatch outside executor lock. Define completion
+of standalone Job instances too. A same-thread RLock acquisition test is
+not evidence that the lane was released; use another thread or verified
+boundary ownership. Resolve synchronous dispatch when registering/cancelling
+inside existing execution boundaries. No need for a new general callback
+service if a safe deferred dispatch mechanism suffices.
+
+R11 (lifecycle): publication followed by activate outside host lock races
+close/host stop. A stopped inactive executor must never subsequently start.
+Worker-start failure after publication needs rollback of host tables and
+bindings as well as runtime resources; current _initialize exception path
+was designed for pending initialization. Serialize ownership transitions
+without holding locks required by worker. Test activate/close, activate/host
+stop, failed thread start after registration.
+
+R12 (lifecycle): standalone create/load starts executor, but plan omits
+ApplicationRuntime.stop/close executor integration. These existing methods
+prepare/revoke resources and unload Packs. All hosted and standalone
+termination paths must honor stop outcome before destructive cleanup,
+including lifecycle preflight decorators. Prefer shared termination contract
+with exactly one cleanup owner for concurrent/repeated close.
+
+Additional binding clarifications recommended:
+- CP-8 unsafe must terminally dispose queued unstarted Jobs and reject
+  inspection or other invocation if authority is unresolved; resume must
+  not clear unsafe. Failed after partial acceptance needs explicit disposition,
+  distinct from pre-commit failure. A terminal Job alone is not proof of
+  resolved authority. Preserve cleanup evidence and existing quarantine.
+- Host stop closes host-level admission before releasing lane to drain
+  executors; concurrent initialization/registration must not escape the
+  shutdown snapshot. Shared services retained while incomplete runs need them.
+- CP-3.01/3.02 use exact run/job scope, not just worker identity or a boolean
+  contextvar; no independent nested top-level Job. Preserve legitimate
+  activation/cleanup hook authority without allowing external bypass.
+- CP-4.06/4.07 snapshot lists current Job identity but cancellation requires
+  actual handle or explicit cancellation-by-id interface; define one.
+- Inspection constrains platform-mediated authority, not arbitrary trusted
+  in-process Python side effects. Do not claim absolute purity. Verify nested
+  calls retain restrictions, including LLM helpers and other facades. Deny
+  admission during teardown or unsafe state.
+- G8 preserve primary exception and actual cleanup errors even when context
+  invalidation has already begun; test nested depth, resolved children,
+  cleanup failure and successful subsequent Job only when safe. Scope the
+  terminal guarantee to admitted Jobs, not rejected requests.
+- AI Buddy outbox notification: Job completion alone should not require the
+  executor thread to perform slow external delivery or wait for its own ack.
+  Preserve delivery semantics; verify no duplicate concurrent delivery,
+  including ack pending and restart. Run-scoped debugger key tagged by run ID
+  may still physically persist; clarify semantic vs physical durability.
+
+OWNERSHIP EXPECTATION
+Integration / platform disposition; AI Buddy consumer details remain
+Application-owned. Analyzer recommendations not implementation authorization.
+
+BLOCKING
+R10 before Job callback acceptance; R8/R9 before executor core acceptance;
+R11/R12 before lifecycle integration acceptance. G8 can be independently
+addressed now with the evidence requirements above. No need to freeze all
+work pending later-stage details.
+
+RELEVANT MATERIAL
+design/working/application-execution-checkpoint-01.txt rev2
+  blob ddb5e78248468c7ef9df114c94519694442f726d
+design/working/application-execution-implementation-plan-01.txt rev2
+  blob f9a8c7bfa6d4a65f21199b5ec94fc55392ec0d08
+Original analyzer review commit 06b301a34d996e12f7a60857845065cff10a3312
+backend/runtime/runtimeHost.py (_initialize)
+backend/application/applicationRuntime.py (stop, close, runJob)
+backend/context/codeEntryContext.py (_MemoryFacade.close, invalidate)
+
+REPORT BACK
+Focused corrections/disposition, preserving staged gates and scope.
+No full redesign requested.
+
+NOTES
+Selected source/document review, not exhaustive audit or test execution.
