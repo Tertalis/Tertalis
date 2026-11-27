@@ -1,0 +1,74 @@
+TERTALIS APPLICATION PLATFORM PROVENANCE - MIGRATION M3
+========================================================
+Recorded: 2026-11-27
+Scope: historical migration synchronization, recorded acceptance, and current
+tracked source equality. No new platform adoption or executable verification.
+
+APPLICATION BASELINES
+---------------------
+Experiment Runner
+  Imported platform: d09a7b216709a89c62862e092d5562ef53258153
+  Accepted migration combination: 87e355e983e15860f66474398dbf64360dcc77e0
+  Evidence: user-reported 2214 passing tests; migration plan 08.17-08.18.
+  Audited current App HEAD: dd8e5cd8f4f872cf4f2445388d1097a78392f322
+  All 74 App-owned paths retained; only application README blob differs.
+
+Materialization Test
+  Imported platform: b47133f3ea6487fee348f05556016b6970613889
+  Accepted migration combination: d13e65df5364ec76a795f2b4f25dea5aa523978a
+  Evidence: user-reported 1792 passing tests; migration plan 08.21-08.22.
+  Audited current App HEAD: 1c6e3073ecb951b36a92b76eaccdcb5817df4c8d
+  All 27 original App-owned paths unchanged; one local .gitignore added.
+
+Evil Analysis
+  Imported platform: b587741fd9c82fc56365e7f33d1cb23f2241dd84
+  Accepted migration combination: 69d6958ddc23ce60d87cb90d341879d77a87f068
+  Evidence: user-reported 1901 passing tests; migration plan 08.23-08.24.
+  Audited current App HEAD: 3b144b0eca9b8ad808b3eb89a0edc3cc77d4e846
+  All 38 App-owned paths unchanged.
+
+Completion
+  Synchronized platform: dddd1dbac890eddb73651b1320859be5093539ad
+  Evidence: exact fast-forward to platform; migration plan 08.20.
+  Audited current App HEAD: 2dd8404a192ed079619b68e6b14f8b865238bfcb
+  No App implementation or tests; no application compatibility acceptance.
+  Retain the synchronized revision as the starting implementation baseline.
+
+AI Buddy
+  Synchronized platform: f30c393f7d723f9f8a897ff74a054aed1a1e4cd4
+  Evidence: exact fast-forward; migration plan 08.19.
+  User-reported materialization verification used platform projection matching
+  de124f3be8f1b6c025ea528e5470b0d14efdde42 (63 tests and live stages A-F).
+  Source/test commit: 9bb86922877ce7ecd9deac18cc1130b0421b7faa
+  Audited current App HEAD: 2a905b8548e189d07e2a5b4cbbca3d4ecae6d6b3
+  All 16 source/test commit App-owned paths unchanged; one .gitignore added.
+  No post-test-directory-move suite or independent verification reported.
+  Keep f30c393 as historical synchronization provenance; de124f3 is the
+  observed verification reference, not a new formal Integrator acceptance.
+
+COMPARISON METHOD / RESULT
+--------------------------
+Complete recursive Git trees, no truncation, compared by path and blob SHA.
+All five historical platform revisions above, de124f3 and Integration at
+33e029dc6b9dc6df92e50bb9e58345ba0260a547 contain exactly the same 251
+platform blobs outside docs/, design/, ai-workflow/ and root README.md,
+SETUP.md, AGENTS.md. No missing, extra or modified shared paths.
+Current App trees were audited against the same shared platform projection
+after the application-local ignore relocations. No shared implementation
+differences found. Direct historical-to-current App-owned tree comparisons
+yielded the differences listed above. The historical migration App commits
+are ancestors of their respective current integration refs (no behind).
+Repository-specific docs, local ignore files and retired coordination are
+not platform adoption. No runtime tests were run in this audit.
+
+OPERATING RULE
+--------------
+Retain exact historical imported/synchronized SHA and scoped acceptance
+evidence rather than assigning a newer equivalent platform SHA arbitrarily.
+For the three tested migration combinations the historical accepted platform
+revision remains the baseline; current source equality is not fresh acceptance
+of a new combined HEAD. Completion and AI Buddy retain their synchronized
+baselines with the distinct verification qualifications above. No new
+Integrator acceptance, release, ownership change or upgrade is implied.
+M3 provenance evidence is complete; application-specific future verification
+remains normal development work, not an automatic migration requirement.
