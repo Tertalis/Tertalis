@@ -3,7 +3,7 @@ TERTALIS PLATFORM INTEGRATION - CURRENT ROUTING
 Updated: 2026-11-27
 Workstream ID: integration. Owner: Integration workstream.
 Repository: Tertalis/Tertalis; branch: integration.
-This existing state/actant.txt path is retained for link stability only.
+Canonical Integration STATE: ai-workflow/state/tertalis.txt.
 Global freeze lifted; normal admission, ownership and acceptance rules apply.
 AI Buddy requests G8/G7/G1 and G2-G6 findings are in the canonical inbox;
 see state/ai-buddy.txt. No new implementation assigned by this audit.

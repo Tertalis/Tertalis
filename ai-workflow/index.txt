@@ -377,7 +377,7 @@ Purpose: coherent shared Actant platform integration, bounded implementation
          shared runtime/reusable facilities, and selective direct implementation.
 Owner: Actant integration thread.
 Working repository/branch: Tertalis/Tertalis integration
-State: ai-workflow/state/actant.txt
+State: ai-workflow/state/tertalis.txt
 Additional shared state:
 - ai-workflow/state/shared-packs.txt
 - ai-workflow/state/design-reconciliation.txt

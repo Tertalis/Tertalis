@@ -367,7 +367,7 @@ ai-workflow/knowledge/experiment-runner-ex06-plan-review.txt
 ai-workflow/assignments/experiment-runner-ex06-process-workspace.txt
 ai-workflow/index.txt
 ai-workflow/state/experiment-runner.txt
-ai-workflow/state/actant.txt
+ai-workflow/state/tertalis.txt
 ai-workflow/assignments/experiment-runner-ex04.txt
 ai-workflow/assignments/experiment-runner-ex04-request-evidence.txt
 ai-workflow/assignments/experiment-runner-ex05.txt
