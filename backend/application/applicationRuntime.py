@@ -1,4 +1,4 @@
-# file: backend/application/applicationRuntime.py ; version: 28
+# file: backend/application/applicationRuntime.py ; version: 29
 from __future__ import annotations
 
 from contextlib import suppress
@@ -18,7 +18,8 @@ from backend.llm.streamingRuntime import LlmProcessingPipeline, LlmProviderRegis
 from backend.observation import ObservationService
 from backend.orchestration.cancellation import CancellationSignal, ExecutionCancelled
 from backend.orchestration.runtime import (InvocationCleanupFailed, Job, JobAuthority, JobCleanupEvidence,
-    JobCleanupFailed, JobState, OrchestrationUnit, OrchestrationUnitOutcome, cleanupEvidenceScope)
+    JobCleanupFailed, JobState, OrchestrationUnit, OrchestrationUnitOutcome, cleanupEvidenceScope,
+    jobDispatchBoundary)
 from backend.packs.runtime import PackLoader, PackResolver
 from backend.process.configuration import processToolDefinitionsFromConfig
 from backend.process.context import ProcessFacade
@@ -26,6 +27,7 @@ from backend.process.runtime import ProcessRunner, ProcessToolRegistry
 from backend.process.capture import processJobScope
 from backend.registration import RegistrationScope
 from backend.save import ApplicationStore, LoadedApplicationSave, SaveBundle
+from backend.runtime.clock import Clock, SystemClock
 from backend.tracing import Tracer, TraceSinkDestination
 
 if TYPE_CHECKING:
@@ -80,6 +82,7 @@ class ApplicationRuntime:
         llmExecutionBindings=None,
         providerComposers=(),
         executionResourceService=None,
+        clock: Clock | None = None,
     ) -> None:
         """
         Creates one ApplicationRun and its mediated runtime services.
@@ -131,6 +134,9 @@ class ApplicationRuntime:
                 durableGeneration=saveBundle.generation,
             )
 
+        if clock is not None and not isinstance(clock, Clock):
+            raise TypeError("clock must be a Clock.")
+        self.clock = SystemClock() if clock is None else clock
         self.applicationRun = ApplicationRun(application=resolvedApplication)
         self.io = ManagedIo()
         self.capabilities = CapabilityRegistry()
@@ -199,6 +205,7 @@ class ApplicationRuntime:
         llmExecutionBindings=None,
         providerComposers=(),
         executionResourceService=None,
+        clock: Clock | None = None,
     ) -> tuple[ApplicationRuntime, LoadedApplicationSave]:
         """
         Creates a fresh ApplicationRuntime from one durable Application root snapshot.
@@ -218,6 +225,7 @@ class ApplicationRuntime:
             tracer=tracer,
             observationService=observationService, llmExecutionBindings=llmExecutionBindings,
             providerComposers=providerComposers, executionResourceService=executionResourceService,
+            clock=clock,
         )
         runtime.applicationRun.application.durableGeneration = loaded.durableGeneration
         return runtime, loaded
@@ -557,6 +565,7 @@ class ApplicationRuntime:
             allowRegistration=allowRegistration,
             cancellationSignal=cancellationSignal,
             declaredEntries=self.packLoader.declaredEntries,
+            clock=self.clock,
         )
         contextReference = context
         return context
@@ -649,9 +658,6 @@ class ApplicationRuntime:
                 context.invalidate()
                 scope.withdraw()
 
-    @invocationBoundary
-    @lifetimeBoundary
-    @jobExecutionBoundary
     def runJob(
         self,
         capabilityId: str,
@@ -666,19 +672,46 @@ class ApplicationRuntime:
         blocking execution begins and request cancellation from another thread.
         Existing callers may omit job and receive the internally created handle after
         execution as before.
+
+        This outermost wrapper owns the Job's execution: done callbacks become
+        eligible only after every lane, lock and decorated boundary below has
+        been left, on normal and exceptional exit alike (CP-10.02). Callbacks
+        registered or due inside the Job run at this wrapper's exit.
         """
+        activeJob = Job.new() if job is None else job
+        if not isinstance(activeJob, Job):
+            raise TypeError("job must be a Job or None.")
+        with jobDispatchBoundary():
+            owned = activeJob.beginExecution(failureReporter=self._reportDoneCallbackFailure)
+            try:
+                return self._runJob(capabilityId, payload, job=activeJob)
+            finally:
+                if owned:
+                    activeJob.endExecution()
+
+    def _reportDoneCallbackFailure(self, job: Job, callback: object, error: Exception) -> None:
+        """Traces an isolated done-callback failure; the Job is unchanged."""
+        self.trace(
+            "job-done-callback-failed",
+            message=f"{type(error).__name__}: {error}",
+            attributes={"jobId": job.jobId, "callback": repr(callback), "applicationRunId": self.applicationRun.applicationRunId},
+            level="error",
+        )
+
+    @invocationBoundary
+    @lifetimeBoundary
+    @jobExecutionBoundary
+    def _runJob(self, capabilityId: str, payload: object | None, *, job: Job) -> Job:
+        """Admits and executes one Job; see runJob."""
         with self._lane:
             requireInvocationEntry(self)
             self.requireActive()
             self.requireAuthoritySafe()
-            activeJob = Job.new() if job is None else job
-            if not isinstance(activeJob, Job):
-                raise TypeError("job must be a Job or None.")
-            if activeJob.state is not JobState.CANCELLED:
-                activeJob.start()
+            activeJob = job
+            started = activeJob.tryStart()
             self._lastJob = activeJob
             noteJobMutation(activeJob)
-            if activeJob.state is JobState.CANCELLED:
+            if not started:
                 self.trace(
                     "job-cancelled",
                     attributes={

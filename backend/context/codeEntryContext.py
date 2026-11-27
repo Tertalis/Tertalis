@@ -1,9 +1,10 @@
-# file: backend/context/codeEntryContext.py ; version: 33
+# file: backend/context/codeEntryContext.py ; version: 34
 from __future__ import annotations
 
 from copy import deepcopy
 import sys
 from dataclasses import dataclass
+from datetime import datetime
 from typing import TYPE_CHECKING
 
 from backend.llm.llmTypes import LlmQuery
@@ -12,6 +13,7 @@ from backend.orchestration.runtime import recordCleanupFailures
 from backend.process.context import ProcessFacade
 from backend.process.runtime import ProcessRunner, ProcessToolRegistry
 from backend.process.capture import ProcessInvocation
+from backend.runtime.clock import Clock, SystemClock
 from backend.values.committed import ValueState
 from backend.workspace.context import WorkspaceFacade
 from backend.workspace.runtime import EphemeralWorkspace
@@ -307,6 +309,26 @@ class _CapabilityFacade:
         return self._invoker(capabilityId, payload)
 
 
+class _ClockFacade:
+    """Invocation-scoped read-only access to the host Clock (CP-11.04)."""
+
+    __slots__ = ("_clock", "_requireValid")
+
+    def __init__(self, *, clock: Clock, requireValid: Callable[[], None]) -> None:
+        self._clock = clock
+        self._requireValid = requireValid
+
+    def now(self) -> datetime:
+        """Returns the host's current aware local datetime."""
+        self._requireValid()
+        return self._clock.now()
+
+    def monotonic(self) -> float:
+        """Returns the host's monotonic seconds."""
+        self._requireValid()
+        return self._clock.monotonic()
+
+
 class _CancellationFacade:
     """Invocation-scoped read/check access to the owning execution cancellation signal."""
 
@@ -460,7 +482,7 @@ class CodeEntryIdentity:
 class CodeEntryContext:
     """Fresh invocation-scoped gateway supplied to Pack CodeEntry code."""
 
-    def __init__(self, *, identity: CodeEntryIdentity, packRoot: Path, io: ManagedIo | ManagedIoTransaction, capabilities: CapabilityRegistry, llmProviders: LlmProviderRegistry, llmPipeline: LlmProcessingPipeline, memory: CommittedValueLayer | CommittedValueTransaction, registrationScope: RegistrationScope, config: dict[str, object], capabilityInvoker: Callable[[str, object | None], object], process: ProcessFacade | None = None, workspace: EphemeralWorkspace | None = None, allowRegistration: bool = False, cancellationSignal: CancellationSignal | None = None, observationOwner: ObservationOwner | None = None, executionAccess=None, declaredEntries: Callable[[str], tuple[DeclaredSourceEntry, ...]] | None = None) -> None:
+    def __init__(self, *, identity: CodeEntryIdentity, packRoot: Path, io: ManagedIo | ManagedIoTransaction, capabilities: CapabilityRegistry, llmProviders: LlmProviderRegistry, llmPipeline: LlmProcessingPipeline, memory: CommittedValueLayer | CommittedValueTransaction, registrationScope: RegistrationScope, config: dict[str, object], capabilityInvoker: Callable[[str, object | None], object], process: ProcessFacade | None = None, workspace: EphemeralWorkspace | None = None, allowRegistration: bool = False, cancellationSignal: CancellationSignal | None = None, observationOwner: ObservationOwner | None = None, executionAccess=None, declaredEntries: Callable[[str], tuple[DeclaredSourceEntry, ...]] | None = None, clock: Clock | None = None) -> None:
         """Creates one call-specific authority context from runtime-owned facilities.
 
         Production ApplicationRuntime construction supplies process authority and
@@ -484,6 +506,7 @@ class CodeEntryContext:
         self.capabilities = _CapabilityFacade(ownerId=identity.codeEntryInstanceId, registry=capabilities, scope=registrationScope, invoker=capabilityInvoker, requireValid=self.requireValid, allowRegistration=allowRegistration)
         self.observations = ObservationFacade(observationOwner, self.requireValid)
         self.packs = _PacksFacade(declaredEntries=declaredEntries, requireValid=self.requireValid)
+        self.clock = _ClockFacade(clock=SystemClock() if clock is None else clock, requireValid=self.requireValid)
         self.llm = _LlmFacade(ownerId=identity.codeEntryInstanceId, registry=llmProviders, scope=registrationScope, pipeline=llmPipeline, memory=memory, requireValid=self.requireExecution, allowRegistration=allowRegistration, cancellationSignal=cancellationSignal, observationOwner=observationOwner, executionAccess=executionAccess)
 
     def requireExecution(self):

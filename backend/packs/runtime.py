@@ -1,4 +1,4 @@
-# file: backend/packs/runtime.py ; version: 18
+# file: backend/packs/runtime.py ; version: 19
 from __future__ import annotations
 
 import hashlib
@@ -10,6 +10,7 @@ from pathlib import Path
 from types import ModuleType
 from typing import TYPE_CHECKING
 
+from backend.capabilities.runtime import requireCapabilityId
 from backend.context.codeEntryContext import CodeEntryIdentity
 from backend.llm.executionSessions import lifetimeBoundary
 from backend.llm.providerComposition import activateBatch, packUnloadBoundary
@@ -21,6 +22,7 @@ if TYPE_CHECKING:
     from backend.application.applicationRuntime import ApplicationRuntime
 
 __all__ = [
+    "ApplicationDeclaration",
     "CODE_ENTRY_FORMATS",
     "CODE_ENTRY_ROLES",
     "DeclaredSourceEntry",
@@ -42,6 +44,7 @@ CODE_ENTRY_FORMATS = frozenset({PYTHON_SOURCE_FORMAT, JS_MODULE_FORMAT})
 CODE_ENTRY_ROLES = frozenset({"main", "library"})
 JS_SOURCE_LIMIT = 1024 * 1024
 _CODE_ENTRY_KEYS = frozenset({"id", "source", "format", "role"})
+_APPLICATION_KEYS = frozenset({"step"})
 _FORMAT_SUFFIXES = {PYTHON_SOURCE_FORMAT: (".py",), JS_MODULE_FORMAT: (".mjs",)}
 
 
@@ -73,6 +76,12 @@ class DeclaredSourceEntry:
 
 
 @dataclass(frozen=True, slots=True)
+class ApplicationDeclaration:
+    """An AppPack's opt-in to platform-driven execution (CP-2.01)."""
+    step: str
+
+
+@dataclass(frozen=True, slots=True)
 class PackDefinition:
     """Immutable discovered Pack identity and ordered CodeEntry declarations."""
     packId: str
@@ -80,6 +89,7 @@ class PackDefinition:
     version: str
     root: Path
     codeEntries: tuple[CodeEntryDefinition, ...]
+    application: ApplicationDeclaration | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -176,7 +186,30 @@ class PackResolver:
             version=version,
             root=manifestPath.parent.resolve(),
             codeEntries=tuple(entries),
+            application=PackResolver._applicationDeclaration(packId, kind, manifest),
         )
+
+    @staticmethod
+    def _applicationDeclaration(packId: str, kind: str, manifest: dict) -> ApplicationDeclaration | None:
+        """Validates the optional "application" declaration (CP-2.01)."""
+        if "application" not in manifest:
+            return None
+        declaration = manifest["application"]
+        if kind != "appPack":
+            raise ValueError(f"Pack {packId!r}: only an appPack may declare \"application\".")
+        if not isinstance(declaration, dict):
+            raise ValueError(f"Pack {packId!r}: \"application\" must be an object.")
+        unknownKeys = set(declaration) - _APPLICATION_KEYS
+        if unknownKeys:
+            names = ", ".join(sorted(map(str, unknownKeys)))
+            raise ValueError(f"Pack {packId!r} \"application\" declares unknown key(s): {names}.")
+        if "step" not in declaration:
+            raise ValueError(f"Pack {packId!r} \"application\" requires \"step\".")
+        try:
+            step = requireCapabilityId(declaration["step"])
+        except (TypeError, ValueError) as err:
+            raise ValueError(f"Pack {packId!r} \"application.step\" is not a capability identity: {err}") from err
+        return ApplicationDeclaration(step=step)
 
     def _discover(self) -> dict[str, tuple[PackDefinition, ...]]:
         """Snapshots manifest discovery once, preserving distinct version candidates."""

@@ -1,12 +1,13 @@
-# file: backend/orchestration/runtime.py ; version: 10
+# file: backend/orchestration/runtime.py ; version: 11
 from __future__ import annotations
 
-from collections.abc import Iterable, Iterator
+import logging
+from collections.abc import Callable, Iterable, Iterator
 from contextlib import contextmanager
 from contextvars import ContextVar
 from dataclasses import dataclass, field
 from enum import StrEnum
-from threading import RLock
+from threading import Condition, RLock, local
 
 from backend.core.runtimeIds import newRuntimeId
 from backend.orchestration.cancellation import CancellationSignal
@@ -21,9 +22,77 @@ __all__ = [
     "JobState",
     "OrchestrationUnit",
     "OrchestrationUnitOutcome",
+    "JobDoneCallback",
     "cleanupEvidenceScope",
+    "jobDispatchBoundary",
     "recordCleanupFailures",
 ]
+
+_log = logging.getLogger("tertalis.orchestration.jobs")
+
+JobDoneCallback = Callable[["Job"], object]
+CallbackFailureReporter = Callable[["Job", JobDoneCallback, Exception], object]
+
+
+# ---------------------------------------------------------------------------
+# Done-callback dispatch (CP-10.02, CP-10.03)
+# ---------------------------------------------------------------------------
+
+_dispatchState = local()
+
+
+def _dispatchDepth() -> int:
+    return getattr(_dispatchState, "depth", 0)
+
+
+@contextmanager
+def jobDispatchBoundary() -> Iterator[None]:
+    """
+    Marks an execution boundary on this thread.
+
+    Callbacks that become due while any boundary is open on the thread are
+    queued and run when the outermost boundary exits (normally or by
+    exception), after the code inside has left its lanes and locks. Outside
+    every boundary callbacks run immediately on the calling thread.
+    """
+    depth = _dispatchDepth()
+    if depth == 0:
+        _dispatchState.pending = []
+    _dispatchState.depth = depth + 1
+    try:
+        yield
+    finally:
+        _dispatchState.depth = depth
+        if depth == 0:
+            pending, _dispatchState.pending = _dispatchState.pending, []
+            _runCallbacks(pending)
+
+
+def _scheduleCallbacks(job: Job, callbacks: list[JobDoneCallback]) -> None:
+    """Runs callbacks now, or defers them to the outermost open boundary."""
+    if not callbacks:
+        return
+    entries = [(job, callback) for callback in callbacks]
+    if _dispatchDepth() > 0:
+        _dispatchState.pending.extend(entries)
+    else:
+        _runCallbacks(entries)
+
+
+def _runCallbacks(entries: list[tuple[Job, JobDoneCallback]]) -> None:
+    """Runs each callback once; a failing callback never affects the Job or the others."""
+    for job, callback in entries:
+        try:
+            callback(job)
+        except Exception as error:  # noqa: BLE001 - callbacks are arbitrary notification code.
+            reporter = job._failureReporter
+            try:
+                if reporter is None:
+                    _log.error("Job %s done callback %r failed.", job.jobId, callback, exc_info=error)
+                else:
+                    reporter(job, callback, error)
+            except Exception:  # noqa: BLE001 - reporting must not stop dispatch.
+                _log.exception("Job %s done callback failure could not be reported.", job.jobId)
 
 
 class JobState(StrEnum):
@@ -173,9 +242,16 @@ class Job:
         compare=False,
     )
     _lane: RLock = field(default_factory=RLock, init=False, repr=False, compare=False)
+    _condition: Condition | None = field(default=None, init=False, repr=False, compare=False)
+    _owned: bool = field(default=False, init=False, repr=False, compare=False)
+    _eligible: bool = field(default=False, init=False, repr=False, compare=False)
+    _callbacks: list[JobDoneCallback] = field(default_factory=list, init=False, repr=False, compare=False)
+    _failureReporter: CallbackFailureReporter | None = field(default=None, init=False, repr=False, compare=False)
 
     def __post_init__(self) -> None:
         """Validates one Job's externally supplied lifecycle fields."""
+        self._condition = Condition(self._lane)
+        self._eligible = self.state in _JOB_TERMINAL_STATES
         if type(self.jobId) is not str or not self.jobId:
             raise ValueError("Job.jobId must be a non-empty exact string.")
         if not isinstance(self.state, JobState):
@@ -218,6 +294,7 @@ class Job:
         has started. A Running Job remains Running until its executor acknowledges
         the request and records the Cancelled terminal outcome.
         """
+        due: list[JobDoneCallback] = []
         with self._lane:
             if self.state in _JOB_TERMINAL_STATES:
                 return False
@@ -225,18 +302,100 @@ class Job:
             if self.state is JobState.PENDING:
                 self.state = JobState.CANCELLED
                 self.authority = JobAuthority.RESOLVED
-            return requested
+                due = self._publishTerminalLocked()
+        _scheduleCallbacks(self, due)
+        return requested
 
     def start(self) -> None:
         """Starts this Job unless it was cancelled while still Pending."""
         with self._lane:
             if self.state is not JobState.PENDING:
                 raise RuntimeError("Only a Pending Job can start.")
+        self.tryStart()
+
+    def tryStart(self) -> bool:
+        """
+        Atomically starts a Pending Job or reports that it was cancelled (CP-10.05).
+
+        Returns True when the Job is now Running, False when it is (or has
+        just become) Cancelled. Any other state is an error.
+        """
+        due: list[JobDoneCallback] = []
+        with self._lane:
+            if self.state is JobState.CANCELLED:
+                return False
+            if self.state is not JobState.PENDING:
+                raise RuntimeError("Only a Pending Job can start.")
             if self._cancellationSignal.requested:
                 self.state = JobState.CANCELLED
                 self.authority = JobAuthority.RESOLVED
+                due = self._publishTerminalLocked()
+                started = False
+            else:
+                self.state = JobState.RUNNING
+                started = True
+        _scheduleCallbacks(self, due)
+        return started
+
+    def wait(self, timeout: float | None = None) -> bool:
+        """Blocks until terminal publication; returns False on timeout."""
+        with self._lane:
+            return self._condition.wait_for(lambda: self.state in _JOB_TERMINAL_STATES, timeout)
+
+    def addDoneCallback(self, callback: JobDoneCallback) -> None:
+        """
+        Registers callback(job) to run exactly once after dispatch eligibility.
+
+        On an eligible terminal Job it runs now (deferred to the outermost
+        boundary when registered inside one); otherwise it is queued for the
+        eligibility point.
+        """
+        if not callable(callback):
+            raise TypeError("Job done callback must be callable.")
+        with self._lane:
+            if not self._eligible:
+                self._callbacks.append(callback)
                 return
-            self.state = JobState.RUNNING
+        _scheduleCallbacks(self, [callback])
+
+    def beginExecution(self, *, failureReporter: CallbackFailureReporter | None = None) -> bool:
+        """
+        Marks this Job as owned by one execution; eligibility waits for endExecution().
+
+        Returns False (and takes no ownership) for an already terminal Job.
+        """
+        with self._lane:
+            if self._owned:
+                raise RuntimeError("Job is already owned by an execution.")
+            if self.state in _JOB_TERMINAL_STATES:
+                return False
+            self._owned = True
+            if failureReporter is not None:
+                self._failureReporter = failureReporter
+            return True
+
+    def endExecution(self) -> None:
+        """Ends execution ownership; a terminal Job becomes dispatch-eligible now."""
+        due: list[JobDoneCallback] = []
+        with self._lane:
+            if not self._owned:
+                raise RuntimeError("Job is not owned by an execution.")
+            self._owned = False
+            if self.state in _JOB_TERMINAL_STATES:
+                due = self._takeEligibleLocked()
+        _scheduleCallbacks(self, due)
+
+    def _publishTerminalLocked(self) -> list[JobDoneCallback]:
+        """Wakes waiters; an unowned Job also becomes eligible. Caller holds the lock."""
+        self._condition.notify_all()
+        if self._owned:
+            return []
+        return self._takeEligibleLocked()
+
+    def _takeEligibleLocked(self) -> list[JobDoneCallback]:
+        self._eligible = True
+        due, self._callbacks = self._callbacks, []
+        return due
 
     def succeed(self, result: object = None) -> None:
         """Records successful terminal completion with fully resolved authority."""
@@ -292,6 +451,8 @@ class Job:
             self.cleanupErrors = cleanupErrors
             self.result = result
             self.error = error
+            due = self._publishTerminalLocked()
+        _scheduleCallbacks(self, due)
 
 
 @dataclass(slots=True)

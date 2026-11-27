@@ -1,4 +1,4 @@
-# file: backend/capabilities/runtime.py ; version: 4
+# file: backend/capabilities/runtime.py ; version: 5
 from __future__ import annotations
 
 from collections.abc import Callable
@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from backend.core.validation import requireExactNonBlankString
 from backend.registration import Registration, RegistrationRegistry, RegistrationScope
 
-__all__ = ["CapabilityHandler", "CapabilityRegistry"]
+__all__ = ["CapabilityHandler", "CapabilityRegistry", "requireCapabilityId"]
 
 CapabilityHandler = Callable[[object, object | None], object]
 
@@ -30,6 +30,11 @@ def _requireCapabilityId(capabilityId: str) -> str:
     if major <= 0 or str(major) != majorText:
         raise ValueError("Capability major version must be a canonical positive integer.")
     return value
+
+
+def requireCapabilityId(capabilityId: str) -> str:
+    """Validates one strict name@major capability identity and returns it."""
+    return _requireCapabilityId(capabilityId)
 
 
 class CapabilityRegistry:

@@ -1,4 +1,4 @@
-# file: backend/runtime/runtimeHost.py ; version: 14
+# file: backend/runtime/runtimeHost.py ; version: 15
 from __future__ import annotations
 
 from contextlib import suppress
@@ -13,6 +13,7 @@ from backend.llm.executionSessions import LlmExecutionBindings, lifetimeBoundary
 from backend.llm.providerComposition import finishResourceEffects, finishBrokerEffects
 from backend.observation import ObservationService
 from backend.packs.runtime import ManualActivationPlan, PackResolver
+from backend.runtime.clock import Clock, SystemClock
 from backend.runtime.executionResources import ExecutionResourceService
 from backend.runtime.sharedServices import (
     SharedServiceRegistry,
@@ -52,8 +53,12 @@ class RuntimeHost:
         tracer: Tracer | None = None,
         telemetryService: TelemetryService | None = None,
         providerComposers=(),
+        clock: Clock | None = None,
     ) -> None:
         """Creates a host with inactive shared observation infrastructure.
+
+        clock is the host-owned time source shared by every ApplicationRuntime
+        of this host (SystemClock when omitted; CP-11.01).
 
         telemetryService is a host-selected borrowed collector; unrelated direct
         claims survive host teardown. Omission selects lazy installed providers
@@ -64,6 +69,9 @@ class RuntimeHost:
         if not isinstance(packResolver, PackResolver):
             raise TypeError("packResolver must be a PackResolver.")
 
+        if clock is not None and not isinstance(clock, Clock):
+            raise TypeError("clock must be a Clock.")
+        self.clock = SystemClock() if clock is None else clock
         self.runtimeHostId = newRuntimeId()
         self.state = RuntimeHostState.CREATED
         self._applicationStore = applicationStore
@@ -146,7 +154,7 @@ class RuntimeHost:
                 options = dict(applicationStore=self._applicationStore, packResolver=self._packResolver,
                     config=config, tracer=tracer, observationService=self._observations,
                     llmExecutionBindings=self.llmExecutions, providerComposers=self.providerComposers,
-                    executionResourceService=self.executionResources)
+                    executionResourceService=self.executionResources, clock=self.clock)
                 if applicationId is None:
                     runtime = ApplicationRuntime(appPackId=appPackId, **options)
                 else:

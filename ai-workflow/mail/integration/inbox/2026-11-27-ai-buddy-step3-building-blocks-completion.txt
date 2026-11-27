@@ -1,0 +1,177 @@
+FROM
+AI Buddy implementer
+
+TO
+Integration
+
+SUBJECT
+Application execution plan step 3: Job completion, tryStart, Clock, manifest declaration ready for review
+
+STATUS
+completion
+
+CONTEXT
+Step 2 (G8) was concluded at 507521a, with continuation to step 3
+recommended. The user authorized continuing implementation. This change is
+on branch step3-building-blocks, based on 507521a.
+
+REQUEST / INFORMATION
+1. Job completion (CP-10), in backend/orchestration/runtime.py (v11).
+
+   New Job methods:
+     - Job.wait(timeout=None) -> bool. It uses a Condition on the Job lock,
+       which is notified at terminal publication.
+     - Job.addDoneCallback(callback). callback(job) runs exactly once per
+       registration.
+     - Job.beginExecution(failureReporter=None) -> bool. On an already
+       terminal Job it returns False and takes no ownership.
+     - Job.endExecution().
+     - Job.tryStart() -> bool. In one Job-locked step it starts a Pending
+       Job, or turns a cancellation-requested Pending Job into Cancelled,
+       or reports an already Cancelled one. It raises for any other state.
+       start() is kept and now delegates to tryStart.
+
+   Eligibility follows the three moments:
+     - Terminal publication wakes waiters.
+     - A Job with no owner becomes eligible at that publication.
+     - An owned Job becomes eligible only at endExecution().
+   Registering on an eligible Job dispatches at once. Registering between
+   publication and eligibility queues the callback.
+
+   NEW jobDispatchBoundary():
+     - A per-thread depth counter and deferred list.
+     - Callbacks that become due while any boundary is open on the thread
+       (registration, cancelling a Pending Job, endExecution) are queued.
+     - The queue is flushed at the outermost exit, normally or by
+       exception.
+     - Outside any boundary, callbacks run on the calling thread, after the
+       Job lock is released.
+
+   Failure isolation:
+     - A failing callback (Exception) never changes the Job and never stops
+       the other callbacks.
+     - The failure goes to the owner's failureReporter, or else to the
+       logger "tertalis.orchestration.jobs".
+     - BaseException from a callback is not swallowed.
+
+2. runJob as the execution owner, in backend/application/applicationRuntime.py
+   (v29).
+   - Public runJob is now an undecorated outermost wrapper. It opens
+     jobDispatchBoundary, takes ownership with beginExecution(failureReporter
+     = trace "job-done-callback-failed"), calls the decorated _runJob, and in
+     a finally block calls endExecution().
+   - Dispatch therefore happens after every runtime lane, lock and decorated
+     boundary is left, on normal and exceptional exit alike.
+   - _runJob uses tryStart() instead of check-then-start. A refused request
+     (unsafe run, closed runtime) releases ownership and leaves a supplied
+     Job Pending.
+   - invokeCapability is not a dispatch boundary. CP-10.03 names admitted
+     Jobs; step 4 will add the executor's own boundary.
+
+3. Clock (CP-11).
+   NEW backend/runtime/clock.py (v1):
+     - Clock (ABC): now() returns an aware local datetime, monotonic()
+       returns seconds, plus generation and
+       waitFor(condition, predicate, deadline=monotonic seconds).
+     - SystemClock: waits in slices of at most 60 s
+       (WALL_RECONCILE_SECONDS), re-checking the predicate.
+     - ManualClock(start, monotonicStart=0.0): advance(seconds) moves wall
+       and monotonic together; setWall() moves wall only. Both bump the
+       generation and notify every condition currently in waitFor. The
+       generation check closes the window between a waiter's check and its
+       wait.
+     - requireAware rejects naive datetimes.
+   RuntimeHost (v15) gains clock= and passes its single clock to every
+   ApplicationRuntime (v29, clock=, default SystemClock).
+   CodeEntryContext (v34) exposes read-only ctx.clock.now() and
+   ctx.clock.monotonic(). They become invalid with the context. Payload
+   "now" keeps working for migration.
+
+4. Manifest declaration (CP-2.01), in backend/packs/runtime.py (v19).
+   - NEW ApplicationDeclaration(step), stored as PackDefinition.application
+     (default None).
+   - "application" is optional and allowed for kind appPack only.
+   - It must be an object with only the key "step", which is required and
+     must be a strict name@major capability identity.
+   - backend/capabilities/runtime.py (v5) exports requireCapabilityId for
+     this check.
+   - Activation-time validation (CP-2.02) stays with step 5, per plan 5.
+
+5. Tests:
+   - NEW tests/backend/orchestration/test_jobCompletion.py (v1, 21 tests):
+     - wait and its timeout;
+     - standalone callbacks before and after terminal publication;
+     - exactly-once under concurrent registration and finish (barrier, 50
+       rounds);
+     - pending cancellation dispatching on the cancelling thread, after the
+       Job lock is released (proven from another thread);
+     - isolated callback failure (logger and reporter);
+     - tryStart against concurrent cancellation (barrier, 200 rounds), and
+       tryStart rejections;
+     - owned-Job eligibility; terminal beginExecution;
+     - boundary deferral and the flush on exception;
+     - runJob dispatch with the runtime lane and the Job lock acquired from
+       another thread (CP-10.06);
+     - registration between publication and eligibility (gated
+       endExecution), dispatched on the runJob thread;
+     - dispatch on a JobCleanupFailed exit and on an interrupt exit;
+     - registering and cancelling inside an admitted Job deferred to the
+       runJob exit;
+     - pre-cancelled Job;
+     - a cancel landing right before start;
+     - refused admission releasing ownership.
+   - NEW tests/backend/runtime/test_clock.py (v1, 10 tests):
+     - SystemClock and ManualClock basics, and naive datetimes rejected;
+     - the lost-notification regression (an advance between the check and
+       the wait);
+     - a cross-thread advance and a monotonic deadline (a wall jump alone
+       does not reach it);
+     - an external notifier waking a wait;
+     - SystemClock deadline;
+     - the ctx.clock value, and its expiry after invalidation;
+     - RuntimeHost clock ownership and type checks.
+   - NEW tests/backend/packs/test_applicationDeclaration.py (v1, 19 cases).
+   - Mutation checks:
+     - removing boundary deferral fails 2 tests;
+     - ignoring ownership fails 3;
+     - removing the ManualClock generation check fails the lost-notification
+       test;
+     - restoring check-then-start in runJob fails the cancel-before-start
+       test.
+
+OWNERSHIP EXPECTATION
+Tertalis platform (Integration acceptance).
+
+BLOCKING
+Yes: step 4 (executor core) builds on accepted step 3.
+
+RELEVANT MATERIAL
+Changed files:
+  backend/application/applicationRuntime.py v29
+  backend/capabilities/runtime.py v5
+  backend/context/codeEntryContext.py v34
+  backend/orchestration/runtime.py v11
+  backend/packs/runtime.py v19
+  backend/runtime/runtimeHost.py v15
+New files:
+  backend/runtime/clock.py v1
+  tests/backend/orchestration/test_jobCompletion.py v1
+  tests/backend/runtime/test_clock.py v1
+  tests/backend/packs/test_applicationDeclaration.py v1
+Design: checkpoint rev 3 CP-2.01, CP-10, CP-11; plan rev 3 section 2.
+
+REPORT BACK
+Acceptance with exact SHA, or findings.
+
+NOTES
+Development evidence (Python 3.13 shim): full tests/ shows no new failures
+against the baseline; 1509 passed. AI Buddy 33d5a2a: 86 tests pass. The
+target-runtime gate is the user's local Python 3.15 run.
+For review:
+  - Callbacks run on whichever thread reaches eligibility: the runJob
+    caller, the cancelling thread, or the thread that finishes a standalone
+    Job.
+  - Executor shutdown's collect-then-dispatch (CP-10.03) belongs to step 4.
+  - The (applicationRunId, jobId) execution scope (CP-3.02) and its
+    clearing before eligibility arrive with the executor in step 4; step 3
+    has no such scope to clear.
