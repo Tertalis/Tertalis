@@ -9,8 +9,8 @@ Purpose: AI Buddy application and independent Tertalis design/implementation
          application.
 Owner: AI Buddy thread (user-directed).
 Working repository and branch/ref: Tertalis/Tertalis-AI-Buddy, branch integration.
-  Head at this record: 80b3f236f07c6220dcdaf3fd77ade944fdef0bdf (no AI Buddy
-  source yet; see CURRENT POSITION).
+  Audited HEAD: 2a905b8548e189d07e2a5b4cbbca3d4ecae6d6b3 (2026-11-27).
+  Source/test commit: 9bb86922877ce7ecd9deac18cc1130b0421b7faa.
 Parent/base relationship: Application repository consuming a pinned Tertalis
   platform snapshot (protocol 12.12).
 Last synchronized Integration ref/commit: recorded synchronization to
@@ -27,15 +27,15 @@ Implementation status:
   is implemented and user-verified. Record:
   ai-workflow/knowledge/ai-buddy-materialization-checkpoints-a-f.txt.
 - Work was user-directed in the AI Buddy conversation from 2026-11-24 while the
-  global freeze remained recorded; no other workstream was resumed.
-- Source exists in the user's local combined checkout, at the paths it should
-  occupy in Tertalis/Tertalis-AI-Buddy:
+  global freeze remained recorded. The user lifted the freeze 2026-11-27.
+- Source and tests are committed in Tertalis/Tertalis-AI-Buddy:
     first-party/applications/aiBuddy/      (AppPack, host driver, launcher,
                                             README, implementation design)
     tests/first_party/applications/aiBuddy/ (63 runtime-contract tests)
   It is application-exclusive (12.08/12.10) and must not be committed to
-  Tertalis/Tertalis. COMMIT TO THE AI BUDDY REPOSITORY IS PENDING; record the
-  resulting AI Buddy SHA here.
+  Tertalis/Tertalis. Source commit verified; local ignore rule relocated in
+  2a905b8; root shared files now match the platform projection at 3f85c86.
+  This comparison is not a new integration acceptance.
   The commit to AI Buddy repository: 9bb86922877ce7ecd9deac18cc1130b0421b7faa
 
 Verified/exercised behavior (user-reported, Python 3.15, user's Windows host,
@@ -95,8 +95,7 @@ REQUIRES
 
 CURRENT OBJECTIVE
 -----------------
-1. Commit the AI Buddy source and tests to Tertalis/Tertalis-AI-Buddy
-   integration (user) and record the SHA here.
+1. FINISHED: source and tests committed; SHA recorded above.
 2. Application backlog, in no fixed order: stale-breakpoint fix; /stop for a
    running inference (semantics to decide: alias of /interrupt, keep partial
    output, skip the step, or continue without pausing); store prompts and
@@ -119,8 +118,7 @@ No platform adoption is requested or authorized by any of them.
 
 CONTINUATION
 ------------
-Run the start barrier; confirm whether the AI Buddy commit exists and record its
-SHA; check Integration replies to the four messages; then take the next backlog
+Run the start barrier; check Integration replies to the four messages; then take the next backlog
 item the user selects. Handoff: ai-workflow/handoff/ai-buddy-thread.txt.
 
 MAINTENANCE RULE
