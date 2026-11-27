@@ -1,3 +1,25 @@
+TERTALIS COMPLETION - CURRENT MIGRATION STATE
+==================================================
+Updated: 2026-11-27
+Working repository: Tertalis/Tertalis-Completion
+Development branch: integration
+Audited Application HEAD: 2dd8404a192ed079619b68e6b14f8b865238bfcb
+Canonical coordination: Tertalis/Tertalis integration.
+Global freeze lifted 2026-11-27; normal admission and ownership apply.
+No application-exclusive implementation or tests yet. Historical synchronization dddd1db remains evidence, not a newly verified pairing.
+Shared platform files match the audited Tertalis source projection at
+3f85c867c45e1ccc07b31722572071ef3f4909aa, excluding repository-specific
+onboarding and centralized documentation/coordination. This is source
+observation only, not an accepted platform SHA or compatibility test.
+Retain earlier accepted evidence; verify exact migrated baseline provenance
+before recording a new accepted pairing. No automatic platform adoption.
+Earlier repository/branch routing, freeze and synchronization instructions
+below are historical; current canonical protocol governs. Earlier capability
+observations are tied to their recorded baselines, not fresh verification.
+
+HISTORICAL WORKSTREAM RECORD
+----------------------------
+
 ACTANT COMPLETION WORKSTREAM STATE
 =================================
 
@@ -158,4 +180,4 @@ No Completion application or VS Code extension code existed
 to rename, and none was created. No Completion-specific tests run.
 Earlier statements describing the pre-synchronization platform
 snapshot are historical, not current executable contracts.
-Current implementation remains paused; global freeze persists.
+At the time of this historical entry, implementation was paused; the global freeze was lifted 2026-11-27.
