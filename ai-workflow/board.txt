@@ -34,6 +34,15 @@ plus actual Application Chromium refresh/history/detail checks pass.
 NOW Review complete locally. NEXT No further feature automatically assigned.
 Evidence: knowledge/ai-buddy-history-refresh-review-2026-11-27.txt.
 
+AI BUDDY CHECKPOINT H - 2026-11-27
+DONE Application 33d5a2a1 accepted/pushed: managed llama.cpp catalog,
+model selection and fresh calls; pinned platform f26210af unchanged.
+DONE Windows 1901 combined / 1815 platform tests, Ruff, 8 Node contracts,
+Chromium managed-selection/inference/refresh and early Stop checks pass.
+NOW Bounded review complete. NEXT User's real-server testing/research;
+known UNKNOWN/cancellation limitation retained, no new recovery work assigned.
+Evidence: knowledge/ai-buddy-managed-llama-review-2026-11-27.txt.
+
 READING THIS BOARD
 ------------------
 This is a concise navigation/progress projection, not a new task authority or an

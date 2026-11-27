@@ -21,9 +21,9 @@ Purpose: AI Buddy application and independent Tertalis design/implementation
          application.
 Owner: AI Buddy thread (user-directed).
 Working repository and branch/ref: Tertalis/Tertalis-AI-Buddy, branch integration.
-  Current accepted HEAD: 518099961b82b5b375df3e0db72867e1b2f9888c (2026-11-27).
-    Recent inference history, record viewer and refresh support; previous
-    checkpoint G 6fc2239 and select-colour fix 3faf9ed are included.
+  Current accepted HEAD: 33d5a2a161676fd5a6594f9ffe3aca1e50e27c18 (2026-11-27).
+    Checkpoint H managed llama.cpp and model selection; prior history,
+    record viewer, refresh and checkpoint G features are included.
   Prior accepted platform-adoption HEAD: 3b5fac2af441f14ceb070c38d495c35e0dada5e0.
   Previous application HEAD: 2a905b8548e189d07e2a5b4cbbca3d4ecae6d6b3.
   Source/test commit: 9bb86922877ce7ecd9deac18cc1130b0421b7faa.
@@ -59,28 +59,44 @@ Verified/exercised behavior (user-reported, Python 3.15, user's Windows host,
 - checkpoint tests A-F passed after the corrections listed in the record; live
   Stage 1-6 demonstrations against a user-run llama-server reported working.
 - Independent Windows/Python 3.15 review at the current accepted combination:
-  1891 combined tests pass, zero skips (1815 platform + 76 application tests);
-  affected Python Ruff and 26 Node contracts pass. Platform Chromium smoke
+  1901 combined tests pass, zero skips (1815 platform + 86 application tests);
+  affected Python Ruff and 8 Application Node contracts pass. Platform Chromium smoke
   covers five Views, restart and refresh/token cleanup. Actual AI Buddy with
   a scripted provider passes history/detail/diagnostic-link/viewer-close and
-  normal/cache-disabled reload checks. No new real-model run was performed.
+  normal/cache-disabled reload checks (prior review). Current managed-mode
+  Chromium checks pass model selection A to B, inference/detail model B,
+  selection after refresh, and Stop confirmation before metadata arrives.
+  Provider/process/HTTP were simulated; no new real-model run was performed.
   Earlier native-tool/launcher verification remains historical at 3b5fac2a.
 
-Backend/shared capability available but not yet adopted by this Application:
-- Managed llama.cpp with ER-03 trusted host composition, grants and explicit
-  profile transitions (inbox notices archived 2026-11-27). AI Buddy uses the
-  unmodified first-party llama.cpp Pack in EXTERNAL mode. Adoption plan:
-  host composition in run.py (catalog from config, EntrySelector grant for
-  aiBuddy/buddy with transition), and profile -> transitionProfile ->
-  reserveConversation -> run(session, FreshContext()) in inference execution;
-  transition to an already-loaded profile is a confirmed no-op. External mode
-  stays selectable.
+Backend/shared capability adopted:
+- Managed llama.cpp with ER-03 trusted host composition (checkpoint H,
+  accepted 2026-11-27 at 33d5a2a1): host/
+  llamaManaged.py builds catalog/grant/composer from llama.local.json5
+  (template llama.example.json5, ignored by Git; json5 in application
+  requirements.txt) as Experiment Runner does; every catalog model granted to
+  aiBuddy/buddy with transitions. Each inference transitions to the selected
+  model (stored in aibuddy/llm) then runs with FreshContext; no conversation
+  reservation (single fresh calls). aiBuddy.debug.llm.describe@1/select@1,
+  /model, browser header selector. External mode stays (no local file or
+  --llama-url). Tests test_checkpointH.py fake only process/readiness/HTTP
+  below the real adapter; 10 checkpoint-H cases pass, including launcher
+  model validation and lazy startup selection. No real llama-server run yet.
+  Review: knowledge/ai-buddy-managed-llama-review-2026-11-27.txt.
 
 Incomplete behavior / known application defects:
 - (Fixed in checkpoint G 6fc2239; independent runtime-contract verification passed; live-model verification not recorded) Stale
   breakpoint: a pause whose inference is no longer prepared/generated is now
   cleared with a diagnostic instead of failing; tests in test_checkpointG.py.
 - Developer /interrupt discards partial output.
+- KNOWN LIMITATION (user decision 2026-11-27: keep, pending the user's own
+  research and testing; no Integration request): with the managed server an
+  unproven request completion (mid-answer cancel, timeout, malformed reply)
+  leaves the ER-01 domain UNKNOWN; requests/switches are refused, shutdown
+  does not stop the process, and only an AI Buddy restart plus manually ending
+  llama-server recovers. AI Buddy pauses with "The model server cannot
+  provide ..." keeping the inference prepared; mitigations: finish policy
+  default, /interrupt! and Stop confirmation while managed, quit waits 30 s.
 - Inference records store prompts up to three times and outputs twice; saves
   happen after nearly every Job (contributes to SaveBundle growth).
 
@@ -119,7 +135,8 @@ CURRENT OBJECTIVE
    (semantics to decide: alias of /interrupt, keep partial output, skip the
    step, or continue without pausing; the UI Stop button currently calls
    interrupt); store prompts and outputs once unless edited; save policy at
-   message-completion, lifecycle and exit boundaries; managed llama.cpp mode.
+   message-completion, lifecycle and exit boundaries. Managed llama.cpp mode:
+   checkpoint H accepted at 33d5a2a1 (see above).
    Done in checkpoint G: stale-breakpoint fix; host/driver.py renamed to
    host/buddyLoop.py.
 3. Browser secondary UI: design agreed in

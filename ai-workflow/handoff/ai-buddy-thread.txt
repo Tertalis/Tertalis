@@ -1,3 +1,18 @@
+CHECKPOINT H MANAGED LLAMA.CPP - ACCEPTED, 2026-11-27
+----------------------------------------------------
+Application 33d5a2a161676fd5a6594f9ffe3aca1e50e27c18 committed and pushed on integration.
+Pinned platform f26210af0d179dc29ecc0543cbbb035efa7ebc5d unchanged;
+all 282 shared paths still match. No new platform executable changes.
+Current review: 1901 combined / 1815 platform tests, affected Python Ruff,
+8 Node UI contracts and Chromium model-switch/inference/refresh checks pass.
+Server process, readiness and HTTP were simulated beneath the real adapter;
+no physical llama-server/model validation claimed. Existing UNKNOWN/cancel
+limitation deliberately retained at the user's recorded direction.
+Fixed during review: invalid startup model silently ignored; Stop confirmation
+could be skipped before model metadata arrived. Root orientation corrected.
+Record: knowledge/ai-buddy-managed-llama-review-2026-11-27.txt.
+No further work assigned; user may perform the planned real-server research.
+
 CURRENT UPDATE - 2026-11-27
 ---------------------------
 Accepted Application 518099961b82b5b375df3e0db72867e1b2f9888c

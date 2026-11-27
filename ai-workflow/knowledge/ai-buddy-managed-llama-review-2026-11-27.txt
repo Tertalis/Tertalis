@@ -1,0 +1,92 @@
+AI BUDDY CHECKPOINT H - MANAGED LLAMA.CPP REVIEW
+================================================
+Date: 2026-11-27. User requested another review of both local checkouts,
+followed by commits and pushes if correct.
+
+ACCEPTED REFS / SOURCE BOUNDARY
+-------------------------------
+Application Tertalis/Tertalis-AI-Buddy integration:
+  33d5a2a161676fd5a6594f9ffe3aca1e50e27c18
+  Parent 518099961b82b5b375df3e0db72867e1b2f9888c.
+Application implementation committed and remote integration verified at that SHA.
+Accepted platform remains f26210af0d179dc29ecc0543cbbb035efa7ebc5d.
+Tertalis review started at 1849387e; only canonical state was modified there.
+No backend or shared Pack source changed in either checkout in this round.
+All 282 shared blobs/modes match the existing accepted platform revision.
+Application changes are limited to its own source/tests and root orientation.
+The committed Application ai-workflow tree contains only index.txt; no root
+platform docs/ or design/ imports; private llama.local.json5 is not tracked.
+
+REVIEWED IMPLEMENTATION
+------------------------
+Application host reads a local JSON5 catalog, uses the existing platform
+LlamaCppCatalog/Composition and grants every configured model to the exact
+loaded AI Buddy buddy CodeEntry source identity, with transitions permitted.
+The same approved config is used by the runtime. Managed inference transitions
+to the selected profile then uses FreshContext, without retained conversation
+reservation. Selection is Application state, persisted across reloads.
+Terminal /model and browser model selector run changes at safe boundaries.
+External mode remains supported. The checked-in example is generic; user
+machine paths belong in the ignored local configuration file.
+
+Documented user decision retained: unproven managed completion leaves the
+platform domain UNKNOWN and refuses subsequent requests/switches; restart and
+manual server cleanup may be needed. This review does not add a reset/recovery
+mechanism, change platform semantics, or request a new Integration assignment.
+
+REVIEW CORRECTIONS
+-------------------
+1. --model missing could be queued as a developer request whose failed Future
+   was never checked, while startup announced the requested model and kept the
+   default. Startup now validates the requested model before RuntimeHost or
+   Application creation and returns 2 with the configured alternatives.
+   Regression checks invalid selection leaves no Application/server, plus a
+   valid startup choice is recorded and remains lazily unloaded.
+2. Browser managed mode initially defaulted false. If a running inference was
+   visible before metadata arrived, Stop could bypass managed confirmation.
+   Mode now remains unknown until resolved, and Stop confirms unless external
+   mode has been established. A real Chromium DOM check confirms that declining
+   the dialog sends no interrupt while metadata is absent.
+3. Corrected three new test quote-style lint errors and stale root orientation
+   saying managed mode was future work. No platform upgrade was performed.
+
+ACTUAL VERIFICATION
+-------------------
+Windows, each checkout's embedded Python 3.15.0b4, Node v23.11.0,
+Chromium 152.0.7977.65. Commands from the corresponding repository root:
+  python-embedded/python.exe -X frozen_modules=off -m pytest tests -q
+    Tertalis: 1815 passed in 21.15s, no skips/failures (platform unchanged).
+    Supplied AI Buddy tree: 1899 passed in 29.55s.
+    Final AI Buddy tree: 1901 passed in 28.08s, no skips/failures.
+  Targeted test_checkpointH.py: 10 passed in 1.04s. Exercises real platform
+    adapter/resource machinery with process/readiness/HTTP fakes: lazy initial
+    model, reuse, model switch/no-op, persisted choice, invalid selections,
+    unknown-state pause with prepared inference, external mode, JSON5 example,
+    ignored private config, and two launcher regressions.
+  node --test tests/first_party/applications/aiBuddy/ui.test.mjs
+    8/8 passed on final browser source.
+  python-embedded/Scripts/ruff.exe check <affected Application Python files>
+    PASS run.py, llamaManaged.py, frontendBridge.py, codeEntry.py, conftest.py
+    and test_checkpointH.py. Initial three Q000 findings fixed.
+  Headless Chromium with actual AppPack, frontend host/kit and managed adapter,
+    using the existing managed test fixture below the adapter: PASS selector
+    advertises A/B, selecting B terminates the simulated A server and starts B,
+    browser message produces B's answer, inference details name B, refresh keeps
+    selection, no page errors. Extra actual header-DOM check passes Stop
+    confirmation before model metadata and decline sends zero interrupts.
+    Initial helper run was intercepted by the fixture's global subprocess mock;
+    rerun using a saved real Popen completed successfully, no product fix needed.
+  Git whitespace checks PASS. Staged and committed shared projection verified
+    against the unchanged exact platform, including routing/docs exclusions.
+Temporary fixture stores/browser helpers/output remain outside tracked source.
+Only deterministic tests and this concise acceptance evidence are retained.
+
+LIMITATIONS / NEXT STEP
+-----------------------
+No actual llama-server executable, real model weights, physical switching,
+GPU behavior or real cancellation/shutdown was exercised in this review.
+Known UNKNOWN/cancellation behavior is an explicit retained limitation, not a
+new success claim. The user's planned research/live testing remains separate.
+The known embedded Python home warning appeared but checks completed normally.
+Application commit pushed first; this canonical acceptance/state update is
+published afterward on Tertalis integration. No new task automatically assigned.
