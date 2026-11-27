@@ -1,4 +1,4 @@
-# file: tests/backend/application/test_openTransactionFailure.py ; version: 2
+# file: tests/backend/application/test_openTransactionFailure.py ; version: 3
 """
 G8: a capability that leaves a nested memory transaction open and raises
 must still produce a terminal Job with an authority disposition
@@ -661,3 +661,133 @@ def test_r4_ordinary_success_and_failure_scope_compatibility(harness):
     assert done.state is JobState.SUCCEEDED and failed.state is JobState.FAILED
     assert resolved == [(done.jobId, True), (failed.jobId, False)]
     assert runtime.lastJob is failed and runtime.unsafeAuthority is None
+
+
+# ---------------------------------------------------------------------------
+# Review r2 corrections G8-R3a, G8-R3b
+# ---------------------------------------------------------------------------
+
+from backend.save import ApplicationStore  # noqa: E402
+
+
+def _makePartial(runtime, register, tmp_path):
+    output = tmp_path / "g8-partial.json"
+
+    def writing(ctx, _payload):
+        transaction = ctx.memory.openTransaction()
+        transaction.set("test/g8/partial-save", "accepted")
+        transaction.commit()
+        ctx.io.writeJsonAtomic(output, {"saved": True})
+        return "ok"
+
+    register("test.g8.partialSave@1", writing)
+    with pytest.MonkeyPatch.context() as patch:
+        patch.setattr(ManagedIoTransaction, "commit", lambda self: (_ for _ in ()).throw(IoWriteError("injected")))
+        job = runtime.runJob("test.g8.partialSave@1")
+    assert job.authority is JobAuthority.PARTIALLY_ACCEPTED
+    return job
+
+
+def _makeUnresolved(runtime, register):
+    register("test.g8.unresolvedSave@1", _staging("test/g8/unresolved-save"))
+    with pytest.MonkeyPatch.context() as patch:
+        _failingWorkspaceClose(patch, [OSError("workspace")])
+        with pytest.raises(JobCleanupFailed) as caught:
+            runtime.runJob("test.g8.unresolvedSave@1")
+    return caught.value.job
+
+
+@pytest.mark.parametrize("kind", ["partial", "unresolved"])
+def test_r3a_save_and_capture_refused_while_unsafe(harness, tmp_path, kind):
+    """No new SaveBundle generation is captured, accepted or published while unsafe."""
+    runtime, register = harness
+    store = ApplicationStore(tmp_path / "saves")
+    accepted = runtime.saveApplication(store)
+    application = runtime.applicationRun.application
+    before = (runtime.acceptedSaveBundle, application.saveBundleId, application.durableGeneration)
+    culprit = _makePartial(runtime, register, tmp_path) if kind == "partial" else _makeUnresolved(runtime, register)
+    published = []
+    with pytest.MonkeyPatch.context() as patch:
+        patch.setattr(ApplicationStore, "publish", lambda self, bundle: published.append(bundle))
+        patch.setattr(ApplicationStore, "createApplication", lambda self, bundle: published.append(bundle))
+        with pytest.raises(ApplicationRunUnsafe) as caught:
+            runtime.saveApplication(store)
+        assert caught.value.job is culprit
+        with pytest.raises(ApplicationRunUnsafe):
+            runtime.saveApplication()
+        with pytest.raises(ApplicationRunUnsafe):
+            runtime.captureSaveBundle()
+    assert published == []
+    assert (runtime.acceptedSaveBundle, application.saveBundleId, application.durableGeneration) == before
+    assert runtime.acceptedSaveBundle is accepted
+    # Diagnostic reads of committed state stay possible; unsafe status is explicit.
+    if kind == "partial":
+        assert _committed(runtime, "test/g8/partial-save") == "accepted"
+    else:
+        assert _committed(runtime, "test/g8/unresolved-save") is MISSING
+    assert runtime.unsafeAuthority is culprit
+
+
+def test_r3b_explicit_transaction_view_is_refused(harness, tmp_path):
+    """A caller-supplied transaction view does not bypass containment."""
+    runtime, register = harness
+    calls = _countingWriter(register)
+    culprit = _makePartial(runtime, register, tmp_path)
+    transaction = runtime.applicationRun.application.committedState.openTransaction()
+    try:
+        with pytest.raises(ApplicationRunUnsafe) as caught:
+            runtime.invokeCapability("test.g8.counted@1", {"n": 1}, memoryView=transaction)
+        assert caught.value.job is culprit
+    finally:
+        transaction.abort()
+    assert calls == []
+    assert _committed(runtime, "test/g8/refused") is MISSING
+
+
+def test_r3b_nested_job_poisoning_refuses_further_nested_invocation(harness, tmp_path):
+    """After a nested Job poisons the run, the outer Job can neither invoke nor commit."""
+    runtime, register = harness
+    calls = _countingWriter(register)
+    output = tmp_path / "g8-nested.json"
+    observed = {}
+
+    def innerPartial(ctx, _payload):
+        transaction = ctx.memory.openTransaction()
+        transaction.set("test/g8/nested-inner", "accepted")
+        transaction.commit()
+        ctx.io.writeJsonAtomic(output, {"saved": True})
+        return "inner"
+
+    def outer(ctx, _payload):
+        transaction = ctx.memory.openTransaction()
+        transaction.set("test/g8/nested-outer", "staged")
+        transaction.commit()
+        with pytest.MonkeyPatch.context() as patch:
+            patch.setattr(ManagedIoTransaction, "commit", lambda self: (_ for _ in ()).throw(IoWriteError("injected")))
+            observed["inner"] = runtime.runJob("test.g8.innerPartial@1")
+        try:
+            ctx.capabilities.call("test.g8.counted@1", {"n": 1})
+        except ApplicationRunUnsafe as err:
+            observed["refused"] = err
+        return "outer"
+
+    register("test.g8.innerPartial@1", innerPartial)
+    register("test.g8.outerPoisoned@1", outer)
+    job = runtime.runJob("test.g8.outerPoisoned@1")
+
+    inner = observed["inner"]
+    assert inner.authority is JobAuthority.PARTIALLY_ACCEPTED and runtime.unsafeAuthority is inner
+    assert observed["refused"].job is inner
+    assert calls == []
+    assert job.state is JobState.FAILED and isinstance(job.error, ApplicationRunUnsafe)
+    assert job.authoritativeStateAccepted is False
+    assert _committed(runtime, "test/g8/nested-outer") is MISSING
+    assert _committed(runtime, "test/g8/refused") is MISSING
+
+
+def test_r3_termination_remains_possible_while_unsafe(harness, tmp_path):
+    """Containment keeps termination: the unsafe run still closes."""
+    runtime, register = harness
+    _makePartial(runtime, register, tmp_path)
+    runtime.close()
+    assert runtime.unsafeAuthority is not None

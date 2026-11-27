@@ -1,0 +1,87 @@
+FROM
+AI Buddy implementer
+
+TO
+Integration
+
+SUBJECT
+G8 / plan step 2: R3a and R3b containment corrections
+
+STATUS
+completion
+
+CONTEXT
+Answers 2026-11-27-application-execution-g8-analyzer-review-r2.txt
+(reviewed 96fb4bd, recorded at cb7c133). R1, R2 and R4 and the 21
+regressions are kept unchanged. This is a focused correction on cb7c133.
+
+REQUEST / INFORMATION
+G8-R3a (save/capture while unsafe) - FIXED.
+  saveApplication and captureSaveBundle call requireAuthoritySafe under the
+  runtime lane, before any candidate capture, store publication/creation
+  or acceptance. The last accepted SaveBundle, saveBundleId,
+  durableGeneration and the durable data stay as they were.
+  Diagnostic host-side reads of committed state remain possible and are not
+  claimed reconciled; unsafeAuthority makes the status explicit.
+  No recovery or export path was added.
+
+G8-R3b (caller-supplied view bypass) - FIXED.
+  invokeCapability calls requireAuthoritySafe at entry for every mediated
+  invocation, whatever memoryView is supplied.
+  The runtime-only import of CommittedValueTransaction is removed again.
+  An outer Job that a nested Job poisoned can no longer invoke further
+  capabilities, and its commit is refused as before.
+
+  Lifecycle boundary kept (demonstrated, not widened):
+  - close/stop run normally on an unsafe run; a test covers this.
+  - PackLoader onUnload still receives its cleanup context. That context
+    is not a capability invocation, so any capability it calls is refused.
+  - Its ctx.memory still reaches committed state directly, as before. I
+    left that untouched as the preserved termination authority. Gating it
+    would change onUnload semantics, which is a design decision rather than
+    part of this correction.
+  - Application lifecycle hooks (create/load/run) run before any Job, so
+    they cannot meet an unsafe run.
+
+Tests: tests/backend/application/test_openTransactionFailure.py v3, 26
+tests (21 + 5 new):
+  - R3a, parametrized partial / unresolved:
+    - saveApplication (explicit store and bound store) and
+      captureSaveBundle raise ApplicationRunUnsafe naming the culprit Job;
+    - the store's publish/createApplication are never called;
+    - the accepted bundle, saveBundleId and durableGeneration are
+      unchanged;
+    - committed state is still readable.
+  - R3b: an explicit transaction view opened on the committed root is
+    refused with no handler call; the transaction is aborted, nothing is
+    committed.
+  - R3b: a nested Job poisons the run; the outer Job's further nested
+    capability call is refused with no handler call; the outer Job ends
+    Failed with ApplicationRunUnsafe and its staging is not committed.
+  - Termination: an unsafe run still closes.
+  Mutation checks:
+  - removing the invocation guard fails 4 tests (both R3b and both
+    earlier R3 tests);
+  - removing the save/capture guards fails both R3a cases.
+
+OWNERSHIP EXPECTATION
+Tertalis platform (Integration acceptance).
+
+BLOCKING
+Yes: step 2 acceptance, then steps 3-6.
+
+RELEVANT MATERIAL
+Branch g8-open-transaction-failure on cb7c133. Changed:
+  backend/application/applicationRuntime.py v28
+  tests/backend/application/test_openTransactionFailure.py v3
+
+REPORT BACK
+Exact accepted SHA (after the user's local Python 3.15 run), or findings.
+
+NOTES
+Development evidence (Python 3.13 shim):
+  - Full tests/ shows no new failures against the baseline; 1459 passed.
+  - AI Buddy 33d5a2a: 86 tests pass.
+The target-runtime gate is the user's local Python 3.15 run.
+Open for the design owner: whether onUnload memory access should be
+restricted on an unsafe run.

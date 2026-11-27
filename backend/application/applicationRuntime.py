@@ -1,4 +1,4 @@
-# file: backend/application/applicationRuntime.py ; version: 27
+# file: backend/application/applicationRuntime.py ; version: 28
 from __future__ import annotations
 
 from contextlib import suppress
@@ -27,12 +27,11 @@ from backend.process.capture import processJobScope
 from backend.registration import RegistrationScope
 from backend.save import ApplicationStore, LoadedApplicationSave, SaveBundle
 from backend.tracing import Tracer, TraceSinkDestination
-from backend.values.committed import CommittedValueTransaction
 
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from backend.values.committed import CommittedValueLayer
+    from backend.values.committed import CommittedValueLayer, CommittedValueTransaction
 
 __all__ = ["ApplicationRunUnsafe", "ApplicationRuntime"]
 
@@ -40,9 +39,10 @@ __all__ = ["ApplicationRunUnsafe", "ApplicationRuntime"]
 class ApplicationRunUnsafe(RuntimeError):
     """
     Refuses new authority-bearing work after a Job ended with unresolved or
-    partially accepted authority (CP-8.02). There is no automatic recovery:
-    the ApplicationRun can be inspected through the runtime's evidence and
-    terminated, nothing else. job is the Job whose disposition made the run
+    partially accepted authority (CP-8.02): Jobs, every mediated capability
+    invocation, SaveBundle capture and save. There is no automatic recovery:
+    the ApplicationRun can be inspected (unsafeAuthority, lastJob, host-side
+    reads of committed state, which are not reconciled) and terminated. job is the Job whose disposition made the run
     unsafe.
     """
 
@@ -50,7 +50,7 @@ class ApplicationRunUnsafe(RuntimeError):
         self.job = job
         super().__init__(
             f"ApplicationRun is unsafe: Job {job.jobId} ended with authority {job.authority}; "
-            "no further Jobs or top-level capability invocations are admitted.",
+            "no further Jobs, capability invocations or saves are admitted.",
         )
 
 
@@ -263,6 +263,9 @@ class ApplicationRuntime:
         runtime's accepted durable generation unchanged and retryable.
         """
         with self._lane:
+            # Never accept or publish a known-inconsistent checkpoint; the
+            # last accepted generation and durable data stay as they are.
+            self.requireAuthoritySafe()
             store = applicationStore or self._applicationStore
             if store is None:
                 raise RuntimeError("ApplicationRuntime has no ApplicationStore bound for persistence.")
@@ -291,6 +294,7 @@ class ApplicationRuntime:
         first capture establishes generation 1 of a new SaveBundle identity.
         """
         with self._lane:
+            self.requireAuthoritySafe()
             bundle = self._nextSaveBundleCandidate()
             self._acceptSaveBundle(bundle)
             return bundle
@@ -593,10 +597,9 @@ class ApplicationRuntime:
         with self._lane:
             requireInvocationEntry(self)
             self.requireOperational()
-            if not isinstance(memoryView, CommittedValueTransaction):
-                # Not inside a Job's transaction: the context would reach
-                # authoritative state directly.
-                self.requireAuthoritySafe()
+            # Every mediated invocation, whatever view the caller supplies:
+            # a view is not evidence of running inside the admitted Job.
+            self.requireAuthoritySafe()
             registration = self.capabilities.resolve(capabilityId)
             try:
                 identity, packRoot = self._codeEntries[registration.ownerId]
