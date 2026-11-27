@@ -1,0 +1,370 @@
+TERTALIS BROWSER FRONTEND - IMPLEMENTATION PLAN #1
+==================================================
+
+Current Tertalis working location:
+    design/working/browser-frontend-implementation-plan-01.txt
+
+Status:
+    NON-AUTHORITATIVE WORKING PLAN. Steps 2-4 materialized 2026-11-27 on
+    branch browser-frontend (see section 7); step 5 pending AI Buddy source.
+
+Design source:
+    design/working/browser-frontend-checkpoint-01.txt (sections cited as CP-n)
+
+Platform ref examined:
+    Tertalis/Tertalis integration de124f3be8f1b6c025ea528e5470b0d14efdde42
+
+Purpose:
+    Lists, per step, every file to edit, create, rename or remove so that the
+    platform supports the browser frontend and AI Buddy uses it. The platform
+    is expected not to be ready; this plan changes internal (backend/) and
+    first-party code wherever needed. Python 3.15 only; Node.js 20+ for JS
+    tests (TERTALIS_NODE, as the observation viewer tests already use).
+    New files start at "version: 1"; edited files bump their version header.
+
+Destination after validation:
+    Python/JS specifics move to design/implementation/specification/
+    (python/ and a new js/ subfolder); design-level meaning moves from the
+    checkpoint into design/ areas.
+
+
+0. CHANGE SUMMARY
+=================
+
+    Step  Repository     Edit  New  Rename  Remove-code   Tests
+    2     Tertalis         3    0     0     -             3 edited, 1 new
+    3     Tertalis         3    8     0     viewer dupes  2 new, 1 edited
+    4     Tertalis         1   10     0     bridge dupes  6 new
+    5     AI Buddy         5   10     1     idle polling  3 new, 7 edited
+    6     both             -    -     -     -             smoke extended
+
+"Remove-code" means code moved out of a file into a shared place, not file
+deletion. No file is deleted outright; one file is renamed (step 5).
+
+
+1. STEP 2 - CODEENTRY FORMAT AND ROLE (backend, internal)
+=========================================================
+
+1.01. EDIT backend/packs/runtime.py
+    a. CodeEntryDefinition: add format: str ("python-source@1" default) and
+       role: str ("main" default).
+    b. New module constants: PACK_KINDS = {"appPack", "modPack"};
+       CODE_ENTRY_FORMATS = {"python-source@1", "js-module-source@1"};
+       CODE_ENTRY_ROLES = {"main", "library"}; JS_SOURCE_LIMIT = 1 MiB.
+    c. _definition(): reject kind outside PACK_KINDS (CP-2.07); reject
+       unknown CodeEntry keys (today they are silently ignored, which is how
+       a browser entry would be mis-executed); validate format and role;
+       reject more than one main per format; reject python-source@1 with
+       role "library" until the Python library loader exists (CP-2.08).
+    d. New frozen dataclass DeclaredSourceEntry: packId, packVersion,
+       codeEntryId, format, role, source (declared relative path),
+       sourceBytes, sourceSha256, implementationId.
+    e. Extract the existing path-containment / read / sha256 /
+       implementationId code of _loadModule into _readSource(pack,
+       definition, suffixes); _loadModule keeps executing python only.
+       implementationId material uses the entry's own format instead of
+       the literal "python-source@1" (byte-identical for python entries).
+    f. _activatePack(): python-source@1 entries are executed exactly as now.
+       js-module-source@1 entries are read via _readSource (suffix ".mjs",
+       size <= JS_SOURCE_LIMIT) and recorded; no module execution, no
+       context, no registration. Application-hook detection stays
+       python-only.
+    g. _LoadedPack gains declared: tuple[DeclaredSourceEntry, ...].
+    h. New PackLoader.declaredEntries(format) -> tuple[DeclaredSourceEntry,
+       ...] over active Packs in activation order; immutable snapshot.
+    i. "pack-activation-completed" trace adds declaredEntryIds.
+
+1.02. EDIT backend/context/codeEntryContext.py
+    New read-only facade ctx.packs with declaredEntries(format), guarded by
+    requireValid like every other facade. Constructor takes a
+    declaredEntries callable (default: returns ()).
+
+1.03. EDIT backend/application/applicationRuntime.py
+    createContext() passes self.packLoader.declaredEntries to the context.
+
+1.04. TESTS
+    EDIT tests/backend/packs/test_packResolver.py: kind closed set; unknown
+         CodeEntry key rejected; format/role validation; two mains per
+         format rejected; python library rejected.
+    EDIT tests/backend/packs/test_packLoader.py: js entry recorded, not
+         executed (a deliberately invalid-Python .mjs proves it); bytes and
+         sha256 recorded; root escape and wrong suffix rejected; size limit;
+         python implementationId unchanged (regression); declaredEntries
+         order and immutability; rollback leaves no declared entries.
+    EDIT tests/backend/context/test_codeEntryContext.py: ctx.packs is
+         invalid after context invalidation.
+    NEW  tests/backend/packs/test_declaredEntries.py if the loader test file
+         grows too large (decide at materialization).
+
+
+2. STEP 3 - FRONTEND KIT PACK AND VIEWER REBASE (first-party)
+=============================================================
+
+2.01. NEW first-party/frontendKit/ (packId "frontend.kit", kind "modPack",
+      all entries js-module-source@1, role "library")
+    manifest.json
+    http.mjs        MAX_BODY, ConnectionError, readBoundedJson(response,
+                    limit), requireLoopbackEndpoint(value) - moved from
+                    tools/observationViewer/polling.mjs
+    credential.mjs  takeFragmentCredential(): read #token, history.
+                    replaceState, return it; no storage (CP-7.02)
+    stream.mjs      StreamClient: fetch + ReadableStream event-stream parser,
+                    per-track positions, resume, backoff, abort (CP-4.03);
+                    scheduling pattern taken from viewer Poller
+    invoke.mjs      InvocationClient: crypto.randomUUID ids, POST /invoke,
+                    Accepted/FlowError, Result correlation from the
+                    invocations track, "unknown" on run change (CP-5)
+    tracks.mjs      TrackStore: state/log tracks, gap -> snapshot (CP-6)
+    session.mjs     createSession(): assembles the View session passed to
+                    an Application's mount(element, session) (CP-2.09)
+    README.md
+
+2.02. EDIT tools/observationViewer/polling.mjs
+    Remove MAX_BODY, ConnectionError, the bounded body reader and the
+    literal-loopback check; import them from
+    "../../first-party/frontendKit/http.mjs" and re-export MAX_BODY and
+    ConnectionError so existing importers and tests stay unchanged.
+    The relative path resolves on disk for Node and, in the browser,
+    clamps at the URL root to "/first-party/frontendKit/http.mjs".
+    connectionConfig, readPublication and Poller stay (publication-
+    specific).
+
+2.03. EDIT tools/observationViewer/server.py
+    Add the fixed asset "/first-party/frontendKit/http.mjs" (still a fixed
+    map: no directory serving, no traversal).
+
+2.04. EDIT tools/observationViewer/README.md
+    Note the shared module dependency. Experiment Runner keeps using the
+    viewer unchanged.
+
+2.05. TESTS
+    NEW  tests/first_party/frontendKit/kit.test.mjs (node:test; fake fetch
+         and streams; fragment handling with a fake history/location)
+    NEW  tests/first_party/frontendKit/test_frontendKit.py (pytest wrapper,
+         same pattern as tests/tools/observationViewer/test_viewer.py)
+    EDIT tests/tools/observationViewer/test_viewer.py: served-asset test
+         includes the new fixed asset. viewer.test.mjs stays unchanged and
+         is the regression proof for the move.
+
+
+3. STEP 4 - FRONTEND HOST PACK (backend shared HTTP + first-party)
+==================================================================
+
+3.01. NEW backend/transport/__init__.py, backend/transport/loopbackHttp.py
+    Security mechanics moved out of first-party/observationBridge/bridge.py
+    so both Packs share one reviewed implementation:
+    LoopbackHttpServer (127.0.0.1 only, client interruption on close,
+    silent error handling), QuietHandler (no access logging, fixed error
+    bodies), exact Host check, exact Origin check, constant-time Bearer
+    check, URL-credential rejection, no-store headers.
+
+3.02. EDIT first-party/observationBridge/bridge.py
+    Rebase _Server/_Handler onto backend/transport/loopbackHttp.py; remove
+    the moved code. Behaviour must be identical:
+    tests/first_party/observationBridge/test_bridge.py runs unchanged as
+    the regression proof.
+
+3.03. NEW first-party/frontendHost/ (packId "frontend.host", kind "modPack")
+    manifest.json   one python-source@1 main entry "host"
+    __init__.py
+    codeEntry.py    onLoad: validate config {"frontendHost": {"port",
+                    "maxViews", "main": {"packId", "codeEntryId"}}}; create
+                    FrontendHost; register frontend.host.channel@1 and
+                    frontend.host.connection@1; onUnload closes
+    host.py         FrontendHost: server lifecycle, per-run credential and
+                    run id, View registry and cap (CP-8.04), endpoints
+                    (CP-4.02), source table
+    channel.py      FrontendChannel (thread-safe): declareTrack, set,
+                    append, reset; waitInvocations(timeout); resolve(id,
+                    result | flowError); bounded inbox, per-track ring
+                    buffers, idempotency cache (CP-5.03)
+    protocol.py     Representation: Invocation, Accepted, Result, FlowError,
+                    event and gap shapes; limits; strict JSON validation
+    bootstrap.html  Generic page: imports frontend.kit session.mjs, reads
+                    the credential, fetches the authenticated descriptor,
+                    imports the configured main entry, calls mount()
+    README.md
+
+    Source table: built when frontend.host.channel@1 is first called (after
+    the whole activation plan), from ctx.packs.declaredEntries(
+    "js-module-source@1"); served at /pack/<packId>/<codeEntryId> with the
+    recorded bytes (exactly what was hashed), ETag = sha256. HTTP threads
+    never touch the runtime or the filesystem.
+
+3.04. Delivery seam (CP-3.03): the loop owner calls
+    frontend.host.channel@1 once and then uses the channel directly from
+    its own thread; stream observers inside Jobs may append from the lane
+    thread. The channel never calls the runtime.
+
+3.05. TESTS
+    NEW  tests/backend/transport/test_loopbackHttp.py
+    NEW  tests/first_party/frontendHost/test_channel.py: bounds, positions,
+         gap markers, idempotent ids, resolve after run change, concurrent
+         producers/consumers
+    NEW  tests/first_party/frontendHost/test_host.py: Host/Origin/Bearer,
+         401 without credential, sources served without credential but
+         Host-checked, no-store, URL-credential rejection, View cap, stream
+         framing and resume, snapshot, run id change
+    NEW  tests/first_party/frontendHost/test_activation.py: activation via
+         PackLoader with a fixture AppPack declaring a js main and
+         frontend.kit; source table content-addressed
+    NEW  tests/first_party/frontendHost/smoke.py + browser-smoke.cjs: real
+         browser, following tests/tools/observationViewer pattern; launch
+         URL with fragment; fragment removed, no storage or cookies; two
+         tabs receive the same Emits; second conflicting action gets
+         FlowError "conflict" from a fixture loop owner
+    (test_bridge.py unchanged, see 3.02)
+
+
+4. STEP 5 - AI BUDDY ADOPTION (Tertalis/Tertalis-AI-Buddy)
+==========================================================
+
+Precondition: the AI Buddy repository's pinned platform tree is updated to a
+Tertalis SHA containing steps 2-4 (protocol 12.12-12.19); platform files are
+never edited in the Application repository.
+
+4.01. EDIT first-party/applications/aiBuddy/pack/manifest.json
+    Add {"id": "ui", "source": "ui/main.mjs", "format":
+    "js-module-source@1"}.
+
+4.02. NEW first-party/applications/aiBuddy/pack/ui/
+    main.mjs        export mount(element, session); lays out panels
+    model.mjs       pure reducers from track state to view models (Node-
+                    testable without a DOM)
+    style.mjs       CSS text adopted via constructed stylesheet (CP-2.10)
+    panels/conversation.mjs  messages and input
+    panels/status.mjs        lifecycle, busy, schedule, open work
+    panels/inference.mjs     live partial output, Stop
+    panels/breakpoint.mjs    prompt/output editor, Continue; sends pause id
+    panels/records.mjs       memory, rules, work
+    panels/game.mjs          Minesweeper board
+    Imports kit modules by served URL (/pack/frontend.kit/<entry>).
+
+4.03. RENAME first-party/applications/aiBuddy/host/driver.py ->
+    host/buddyLoop.py (BuddyDriver -> BuddyLoop), the backlog item about
+    confusion with LLM drivers; done here because the file changes anyway.
+    EDIT inside it:
+    a. Remove the 0.25 s idle poll; wait on channel.waitInvocations(timeout
+       = time to next due work) or, without UI, on an internal Event set by
+       terminal input.
+    b. Breakpoint actions require the current pause id; stale ones resolve
+       as conflict. This closes the recorded stale-breakpoint defect.
+    c. interrupt/stop entry point used by both terminal and UI (stop
+       semantics still to decide; the UI calls the same method).
+
+4.04. NEW first-party/applications/aiBuddy/host/frontendBridge.py
+    Maps loop events to tracks (CP-10.01), Invocations to loop methods and
+    debug.* capabilities (CP-10.02), and resolves them. The only module that
+    knows the channel API.
+
+4.05. EDIT first-party/applications/aiBuddy/run.py
+    PackResolver roots add first-party/frontendKit and
+    first-party/frontendHost; ManualActivationPlan adds "frontend.kit",
+    "frontend.host"; frontendHost config; print the launch URL from
+    frontend.host.connection@1; --no-ui flag skips both Packs. Imports
+    follow the rename.
+
+4.06. EDIT first-party/applications/aiBuddy/run.bat (pass-through of flags,
+    if needed), README.md (UI usage), ai-buddy-implementation-design.txt
+    (new section 17: browser UI; rename references).
+
+4.07. TESTS (tests/first_party/applications/aiBuddy/)
+    EDIT conftest.py: Harness can activate frontend.kit/frontend.host and
+         exposes the channel; imports follow the rename.
+    NEW  test_checkpointG.py: input via Invocation reaches the buddy;
+         tracks reflect speak/status/breakpoint; stale pause id -> conflict;
+         interrupt via Invocation; no UI Packs -> behaviour unchanged.
+    NEW  ui.test.mjs + test_ui.py: model.mjs reducers under Node.
+    Existing test_checkpointA-F.py: only import path changes from the
+    rename.
+
+
+5. STEP 6 - MULTI-TAB AND RESTART VERIFICATION
+==============================================
+
+5.01. Extend the step 4 browser smoke with: five tabs open simultaneously;
+a sixth View beyond the cap rejected cleanly; host restart -> tabs show run
+change and "outcome unknown" for an in-flight Invocation.
+
+5.02. Manual check on the user's Windows host with AI Buddy and a real
+llama.cpp server; results recorded in the AI Buddy STATE.
+
+
+6. RISKS AND DECISIONS TO CONFIRM AT MATERIALIZATION
+====================================================
+
+6.01. Closing the kind set and rejecting unknown CodeEntry keys can break
+out-of-tree manifests. All four known repositories comply today.
+6.02. Returning a live channel object from a capability departs from
+value-only results; it mirrors the observation bridge's grant objects and
+is acceptable for trusted in-process Packs, but should be named in the
+Flow integration review.
+6.03. The viewer's relative import across tools/ and first-party/ is a
+deliberate path trick (2.02). If it proves fragile, the fallback is a
+fixed copy step - not preferred.
+6.04. Rebasing bridge.py (3.02) touches security code; any behaviour
+difference in test_bridge.py blocks the step.
+
+
+7. MATERIALIZATION RECORD (STEPS 2-4, 2026-11-27)
+================================================
+
+7.01. Deviations from sections 1-3, all deliberate:
+    a. Loader tests went to a new file
+       tests/backend/packs/test_codeEntryFormats.py (covers 1.04 including
+       the ctx.packs validity check); test_packResolver.py,
+       test_packLoader.py and test_codeEntryContext.py are unchanged.
+    b. Sources are served by declared source path
+       (/pack/<packId>/<source>), not by entry id, so relative imports work;
+       every imported module must be declared (kit manifest declares all
+       eight modules; a kit test enforces it).
+    c. Stream requests carry run=<runId>; positions from another run are
+       ignored (needed for host restarts).
+    d. Kit additions found necessary by the real-browser smoke:
+       TrackStore.watch(); session.onState() reports the current state
+       immediately; fetch is always called through an arrow wrapper
+       (an unbound fetch throws "Illegal invocation" in browsers but not in
+       Node - the same class of defect the G-02 smoke once caught).
+    e. LoopbackHttpServer gained maxClients (connection/thread cap) for the
+       threading variant used by the host.
+    f. The host's bootstrap page lives in frontend.host (bootstrap.html,
+       boot.mjs, boot.css); boot.mjs imports
+       /pack/frontend.kit/bootstrap.mjs.
+    g. Node is optional: tests/first_party/frontendKit/test_frontendKit.py
+       skips without Node. The browser smoke
+       (tests/first_party/frontendHost/smoke.py + browser-smoke.cjs) is a
+       manual harness, as for G-02.
+
+7.02. Verification in the assistant workspace (NOT the accepted Python 3.15
+environment): Python 3.13 with a local shim for the 3.15 builtins
+sentinel() and uuid.uuid7(). Full suite: same 34 environment-caused failures
+before and after (all 3.13-related), +54 new passing tests. Node 22:
+frontend kit suite 14/14, observation viewer suite 41/41. Real-browser smoke
+(Chrome 153, playwright-core): passed - fragment removed, no storage or
+cookies, two Views receive the same Emits, conflicting Continue gets
+FlowError "conflict", a fourth View is refused by maxViews=3, host close
+disconnects Views.
+
+7.03. User verification, 2026-11-27, Windows, Python 3.15: full suite green,
+after two Windows fixes:
+    a. Test fixtures wrote browser sources in text mode (CRLF on Windows)
+       while comparing exact bytes/hashes; they now write newline="\n".
+    b. frontend.host rejected some POSTs before reading the body and closed
+       the socket with unread data; Windows answers that with RST, which
+       discards the response. Early POST rejections now half-close and
+       drain the unread body (bounded: 1 MiB, 1 s) before closing.
+
+7.04. Independent Windows integration check, 2026-11-27:
+    Python 3.15.0b4, Node 23.11.0, Chromium 152.0.7977.65. The original
+    working tree passed 1807 tests and the original browser smoke. Additional
+    probes reproduced snapshot/Emit recovery loss, pending actions left
+    unresolved after credential rotation, pending-action retention exceeding
+    its configured bound, and log snapshots larger than the kit body limit.
+    These were corrected with regression coverage; cached Results were also
+    frozen against later mutation by the loop owner. The expanded real-browser
+    smoke passes with five Views, sixth-View rejection and an actual same-port
+    host restart with an accepted action becoming unknown. Old tabs require
+    a fresh launch link after credential rotation. Full suite: 1813 passed;
+    affected Python Ruff checks and native tool verification passed.
+    Exact integration refs and acceptance are recorded separately under
+    ai-workflow/knowledge/browser-frontend-integration-2026-11-27.txt.

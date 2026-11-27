@@ -1,0 +1,391 @@
+TERTALIS BROWSER FRONTEND DESIGN CHECKPOINT #1
+==============================================
+
+Current Tertalis working-design location:
+    design/working/browser-frontend-checkpoint-01.txt
+
+Status:
+    NON-AUTHORITATIVE WORKING CHECKPOINT
+
+Builds on:
+    design/working/memory-value-system-flow-checkpoint-11.txt (Flow: Interaction,
+    Communication, Invocation, Emit, Subscription, resync, placement)
+    docs/ DA-22 (UI views, frontend runtime), DA-23 (execution adapters),
+    DA-27 (BrowserJSAdapter as initial adapter class), IS-06 (local client
+    connections) - legacy Dv3 material, consulted, not superseded wholesale.
+    G-01 first-party/observationBridge and G-02 tools/observationViewer
+    (implemented precedent, platform ref de124f3).
+
+Purpose:
+    Records the agreed direction for a browser-hosted secondary user interface
+    for Tertalis Applications: what is platform, what is Application, how a
+    browser tab talks to the authoritative Python runtime, and the first
+    implementation slice. The first consumer is AI Buddy, whose terminal-only
+    control proved workable but uncomfortable.
+
+    This is a design checkpoint, not an implementation record. Platform work
+    derived from it goes through Integration mail/assignment (mailing remains
+    authoritative coordination). Once validated by the first slice, its content
+    is to be integrated into the authoritative design (language-agnostic parts)
+    and implementation documentation (Python/JS specifics).
+
+Decided inputs (design owner, 2026-11-27):
+    - Platform from the start; AI Buddy runs on the platform.
+    - Python stays authoritative. JS runs sandboxed in the user's own browser.
+    - Pack kinds are only Pack and AppPack. The Dv1-era "View Pack" carries no
+      separate kind.
+    - A Pack has one main CodeEntry run by default on load and may have
+      non-default (library) CodeEntries loadable by the main one. Planned, not
+      present.
+    - Reuse existing HTML/JS where possible; keep parts replaceable by another
+      Pack providing the same capabilities; do not over-engineer modularity
+      before pressure appears.
+    - Credential in the URL for now.
+    - The platform is expected not to be ready; implementation makes whatever
+      internal and first-party changes are needed (edits, new files,
+      removals).
+    - Multiple tabs if it can work.
+    - Dv3 is the last numbered design generation; semver for Tertalis,
+      Applications and Packs comes later (usable by a PackManager).
+
+
+1. SCOPE AND NON-GOALS
+======================
+
+1.01. In scope: a local, single-user, loopback browser frontend for one
+running Application, with live status, input, and developer control
+(breakpoints, edits, inspection, interruption), usable from one or more tabs.
+
+1.02. Not in scope for this checkpoint: remote/LAN access, multi-user
+authorization, pairing flows (IS-06), WebSocket, a build toolchain, npm
+dependencies, offline/PWA behaviour, persistent browser storage, packaging
+the browser as an execution host for Application logic.
+
+1.03. The terminal frontend remains supported. The browser frontend is an
+additional frontend, not a replacement.
+
+
+2. PACK MODEL: NO VIEW PACK KIND
+================================
+
+2.01. Decision: Pack kinds remain Pack and AppPack. "Frontend" is a property of
+a CodeEntry, not of a Pack. A Pack that only ships browser code is a normal
+Pack; an AppPack may ship both Python and browser CodeEntries.
+
+2.02. Rationale: the Dv1 View distinction existed because views were separate
+deliverables. With CodeEntries carrying their implementation format, a View-only
+Pack is simply a Pack whose CodeEntries all have a browser format; a
+separate kind would add a rule without adding a capability. Keeping the
+browser UI inside the AppPack also keeps application-exclusive source in the
+Application repository (coordination protocol 12.08/12.10).
+
+2.03. "View" is retained as a runtime concept (DA-22): a live frontend session
+(one browser tab) with identity, lifecycle, and binding to an Application run.
+View is not a packaging concept.
+
+2.04. CodeEntry declaration gains two attributes:
+
+    format    implementation format and its contract version. Reuses the
+              existing CodeEntry identity vocabulary (implementationFormat,
+              today always "python-source@1"). Initial set:
+              "python-source@1" (executed by the Python adapter) and
+              "js-module-source@1" (served to a browser View, never executed
+              by Python). Default when absent: "python-source@1", which
+              keeps every current manifest valid.
+    role      "main" or "library". Default when absent: "main".
+
+    Example (AI Buddy AppPack):
+        {"packId": "aiBuddy", "kind": "appPack", "version": "0.1.0",
+         "codeEntries": [
+           {"id": "buddy", "source": "codeEntry.py"},
+           {"id": "ui", "source": "ui/main.mjs",
+            "format": "js-module-source@1"}]}
+
+    The adapter is selected by format; a separate adapter attribute is not
+    needed.
+
+2.05. "Main" is per format: at most one main CodeEntry per format per Pack.
+The python main runs on Pack load (current behaviour). The browser main runs
+when a View bootstraps. Library CodeEntries are never run by default; a main
+entry loads them explicitly (Python: planned loader; browser: ES module import
+of the URL the frontend host serves for that entry).
+
+2.06. Current-state fact (de124f3): backend/packs/runtime.py accepts any
+non-empty kind string (only "appPack" is special), ignores unknown CodeEntry
+keys, and loads EVERY declared CodeEntry as a Python module on activation
+(rejecting non-.py sources). Therefore a browser CodeEntry cannot be declared
+until the loader honours "format". This is the first platform change required
+(section 9, step 2).
+
+2.07. Kind values: the two kinds are spelled "appPack" and "modPack" (the normal
+Pack). Every manifest in Tertalis, AI Buddy, Experiment Runner and Completion
+already uses only these two, so the set can be closed without migration.
+Renaming "modPack" is left to the later semver/PackManager work.
+
+2.08. Decided for the first slice: a Pack may declare only library entries (no
+main). Format is part of CodeEntry identity (already, as
+implementationFormat); role is not. A python-source@1 library entry is
+rejected until the planned Python library loader exists, rather than being
+silently ignored.
+
+2.09. Browser main contract: a js-module-source@1 main entry exports
+mount(element, session), where session is the frontend kit's View session
+(stream, invoke, tracks). The bootstrap page is generic and owned by the
+frontend host; the Application supplies only its main entry.
+
+2.10. Non-code Pack assets (stylesheets, images) are not introduced. Styles
+travel as JS modules (CSS text adopted via a constructed stylesheet). Static
+assets are an open item for later pressure.
+
+
+3. COMPONENTS
+=============
+
+3.01. Browser library Pack (normal Pack, first-party). Browser library
+CodeEntries only. Initial content extracted from tools/observationViewer
+(already shared: Experiment Runner reuses the unchanged G-02 viewer):
+    - boundedJson (bounded body read and parse; current MAX_BODY 2 MiB)
+    - connection validation (literal-loopback endpoint check from
+      connectionConfig) and ConnectionError
+    - scheduling/poller pattern (from Poller) generalized to a stream client
+    - invocation client (section 5)
+    - track store and resync helper (section 6)
+The observation viewer may be rebased onto this Pack later; not required by
+the first slice.
+
+3.02. Frontend host Pack (normal Pack, first-party, Python). Provides
+capabilities; another Pack providing the same capabilities may replace it.
+Responsibilities:
+    - loopback HTTP server, exact origin allowlist, no-store (G-01 posture)
+    - per-run credential (section 7)
+    - serving browser CodeEntries of loaded Packs at stable URLs
+    - Invocation intake and Emit streaming (sections 5-6)
+    - View registry (connect, heartbeat, disconnect)
+It does not interpret Application semantics.
+
+3.03. Delivery seam. HTTP threads never call the runtime (G-01 rule kept).
+They write accepted Invocations to a thread-safe bounded inbox and read
+bounded per-track buffers. The application loop owner drains the inbox and
+runs Jobs on the ApplicationRun lane. Today the owner is the Application's own
+driver (AI Buddy host/driver.py); once a platform long-lived execution facility
+exists (AI Buddy mail G1, 2026-11-27) the platform drains it instead. The seam
+is where G1(c) "delivery of external input as events" becomes concrete.
+
+3.04. Application browser main CodeEntry (Application-owned, e.g. aiBuddy/ui).
+Renders panels from tracks and issues Invocations. Holds no authoritative
+state.
+
+3.05. Capabilities (frontend host Pack "frontend.host", following the
+observation bridge naming style):
+    frontend.host.channel@1     returns the run's thread-safe channel: declare
+                                tracks, set/append Emits, wait for and take
+                                accepted Invocations, resolve them
+    frontend.host.connection@1  returns the full launch URL (with credential
+                                fragment) for the launcher to display only
+Track updates are pushed by the loop owner; the host caches the latest state
+and a bounded log tail, so snapshots never call back into the runtime.
+Names stay provisional until reviewed with Flow naming in checkpoint 11.
+
+3.06. Conflict decisions belong to the Application. The host validates
+structure and carries an Invocation's expectation through; the loop owner
+decides "conflict" and resolves with FlowError (Flow does not interpret
+domain meaning, design/area/flow.txt 01.02).
+
+
+4. TRANSPORT
+============
+
+4.01. Distinctness (checkpoint 11 section 40): HTTP is the Transport; JSON is the
+Representation; Invocation/Emit are Communication roles. Transport context
+(connection, tab, headers) is not identity and not authorization beyond the
+single credential check.
+
+4.02. Endpoints (illustrative):
+    GET  /                       bootstrap page; loads the Application's
+                                 browser main CodeEntry
+    GET  /pack/<packId>/<source> served browser CodeEntry sources, addressed
+                                 by declared source path so relative ES
+                                 module imports between declared entries work;
+                                 every imported module must be declared
+    POST /invoke                 one Invocation per request
+    GET  /stream?tracks=...&run=<runId>&after=<track>:<position>
+                                 one long-lived Emit stream per tab; positions
+                                 are honoured only when run matches
+    GET  /snapshot/<track>       explicit resync
+
+    The bootstrap page and served CodeEntry sources need no credential:
+    browser module imports cannot send an Authorization header, and the
+    sources are not secret (they are on disk). They are still Host-checked and
+    loopback-only. Every data endpoint (invoke, stream, snapshot, bootstrap
+    descriptor) requires the credential.
+
+4.03. Stream framing: text/event-stream format read with fetch() and a
+ReadableStream reader, not EventSource, because EventSource cannot send an
+Authorization header. Each event carries track, position, kind, payload. The
+client resumes by sending its last positions; this replaces Last-Event-ID and
+covers several tracks per stream.
+
+4.04. Bounded everything: request body size, per-track buffer length, per-View
+pending Invocations, event payload size. Exceeding a bound yields a FlowError
+or a gap, never unbounded growth.
+
+
+5. INVOCATIONS
+==============
+
+5.01. A browser action is an Invocation with a client-generated stable id
+(checkpoint 11 section 41), a target (capability or Application command),
+arguments, and optional expectations (section 5.04).
+
+5.02. Roles (checkpoint 11 sections 42-43): POST returns Accepted (queued in
+the inbox) or FlowError (rejected at intake: malformed, bound exceeded,
+unauthenticated). Result or FlowError later arrives as an Emit on the
+invocations track, correlated by id.
+
+5.03. Idempotency: the host remembers recent ids per run; a repeated id returns
+the original Accepted/outcome without re-queueing. After a host or process
+restart, ids from the prior run are unknown; the client shows the outcome as
+"unknown" rather than retrying silently (intent before effect, section 143).
+
+5.04. Expectations for conflict detection: an Invocation may name the revision
+it was made against (e.g. the breakpoint pause id, a record revision). A stale
+expectation yields FlowError "conflict". This arbitrates multiple tabs and
+also removes the AI Buddy stale-breakpoint defect class (continue/replace
+against a pause that no longer exists).
+
+
+6. TRACKS, EMITS AND RESYNC
+===========================
+
+6.01. A track is a named, ordered Emit sequence with monotonically increasing
+positions within one run, plus a snapshot provider. Tracks are the browser
+form of Subscription targets (checkpoint 11 sections 54-61).
+
+6.02. Two track styles:
+    state tracks   latest-value semantics (status, lifecycle, breakpoint,
+                   board); snapshot is authoritative, Emits are changes
+    log tracks     append semantics (conversation, diagnostics, inference
+                   partial output); snapshot is a bounded tail
+
+6.03. Gap handling (checkpoint 11 section 53): if the client's position is older
+than the buffer or from a different run, the host sends a gap marker; the
+client fetches the snapshot and continues from the snapshot position. Panels
+never assume continuity across a gap.
+
+6.04. Run identity: every stream and snapshot carries the run id; a new run id
+invalidates all client positions and pending Invocations.
+
+
+7. CREDENTIAL
+=============
+
+7.01. Decision for now: the credential travels in the URL. It is placed in the
+fragment: http://127.0.0.1:<port>/#token=<credential>. Fragments are not sent
+to the server, are not written to server or proxy logs, and are not included
+in Referer.
+
+7.02. The bootstrap page reads the fragment, removes it with
+history.replaceState, keeps the credential in module memory only (no
+localStorage/sessionStorage/cookie), and sends it as Authorization: Bearer on
+every request.
+
+7.03. Credential: random 256-bit, per run, generated by the frontend host,
+printed by the launcher as the full URL. Constant-time comparison.
+
+7.04. Because fragments are never transmitted, the server never receives the
+credential in a request line; the G-01 server rule that rejects URL credentials
+stays in force unchanged.
+
+7.05. Recorded deviation: G-01 states the credential never appears in URLs. This
+checkpoint deliberately relaxes that for the frontend host only, for
+convenience of opening the UI from a launcher. Residual risks: browser history
+and session restore may retain the full URL before replaceState; screen
+sharing of the launcher output. Revisit before any non-loopback use.
+
+
+8. MULTIPLE TABS
+================
+
+8.01. Supported. Each tab is its own View with its own stream. Python is the
+single arbiter; tabs never coordinate with each other for correctness.
+
+8.02. Conflicting actions are resolved by section 5.04 expectations: the first
+accepted wins, the later gets FlowError "conflict" and refreshes from the
+snapshot.
+
+8.03. Known limit: browsers allow about 6 concurrent HTTP/1.1 connections per
+host across all tabs. With one stream per tab, about 5 tabs remain usable while
+leaving room for POSTs. Mitigation when pressure appears: one leader tab holds
+the stream and shares Emits via BroadcastChannel/SharedWorker; or HTTP/2; or
+WebSocket. Not part of the first slice.
+
+8.04. The host caps concurrent Views (proposed 8) and rejects extra streams with
+a FlowError naming the limit.
+
+
+9. FIRST IMPLEMENTATION SLICE (ORDERED)
+=======================================
+
+Step 1  This checkpoint (design). File-level plan:
+        design/working/browser-frontend-implementation-plan-01.txt.
+Step 2  Platform: CodeEntry format/role attributes in manifest parsing and
+        activation; python loader skips non-python entries; browser entries
+        recorded and resolvable by the frontend host. Tests on Python 3.15.
+Step 3  Platform: browser library Pack extracted from observationViewer
+        modules, with node:test tests (no npm, no build step).
+Step 4  Platform: frontend host Pack (server, credential, inbox, tracks,
+        snapshots, View registry), Python 3.15 tests, and a browser smoke test
+        following the existing browser-smoke.cjs pattern adapted to the URL
+        credential.
+Step 5  Application (AI Buddy repository): tracks and Invocation mapping,
+        driver drains the inbox, browser main CodeEntry with panels.
+Step 6  Multi-tab and restart verification (section 8, section 5.03).
+
+Steps 2-4 are platform work routed through Integration. Step 5 consumes a
+pinned platform SHA containing steps 2-4 (protocol 12.12).
+
+
+10. AI BUDDY MAPPING (FIRST CONSUMER)
+=====================================
+
+10.01. Tracks:
+    aibuddy.status        lifecycle, busy, schedule summary, open work (state)
+    aibuddy.breakpoint    pause kind (prompt/output), pause id, editable text
+                          (state)
+    aibuddy.conversation  said/user messages (log)
+    aibuddy.inference     partial output of the running inference (log, reset
+                          per inference)
+    aibuddy.diagnostics   driver diagnostics (log)
+    aibuddy.game          Minesweeper board (state)
+    aibuddy.records       memory, rules, work views on request (state)
+
+10.02. Invocations map one-to-one to existing driver methods and debug.*
+capabilities: submitInput, setBreakBeforeInference, replacePrompt,
+replaceOutput, continueExecution, pause, interrupt, requestSave, and the
+debug.* set. Breakpoint actions carry the pause id expectation.
+
+10.03. Panels: conversation and input; status/lifecycle; live inference with
+Stop; breakpoint editor with Continue; records (memory, rules, work);
+Minesweeper board.
+
+10.04. Stop semantics remain an open AI Buddy backlog item (alias of interrupt,
+keep partial output, skip step, or continue without pausing). The panel uses
+whatever the driver decides.
+
+10.05. The buddy runs autonomously without the UI. The user engages only when
+she wants; opening or closing tabs never changes Application behaviour.
+
+
+11. OPEN QUESTIONS
+==================
+
+11.01. Final capability names and their relation to Flow naming (section 3.05).
+11.02. Whether the browser library Pack's helpers become a design-level
+contract (language-agnostic Flow client) or stay implementation detail.
+11.03. (Decided, 3.05) Snapshots come from host-cached state pushed by the loop
+owner, not from a runtime callback.
+11.04. Interaction with platform long-lived execution (G1): who owns the inbox
+drain once the platform hosts the loop.
+11.05. Semver for CodeEntry format contracts ("js-module-source@1") versus later
+Pack semver.
+11.06. Static (non-code) Pack assets (section 2.10).
