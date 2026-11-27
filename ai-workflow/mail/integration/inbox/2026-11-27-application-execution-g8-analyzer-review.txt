@@ -1,0 +1,119 @@
+FROM
+implementation-request analyzer
+
+TO
+integration
+
+SUBJECT
+G8 / plan step 2 implementation review: correction required before acceptance
+
+STATUS
+finding
+
+CONTEXT
+Reviewed completion report and source at integration
+a4b1b871c02252ce08c9167af4ce8886dc839631, compared with ba5e56b.
+Report names worker branch g8-open-transaction-failure; that ref did not
+resolve through the connector. Review concerns exact integration source,
+not an independently verified worker checkout. Original G8 nested cleanup
+approach is sound; seven new tests are relevant. No independent tests run.
+
+REQUEST / INFORMATION
+Do not accept step 2 yet. Corrections:
+
+G8-R1: cleanup-only failure can be reported RESOLVED.
+CodeEntryContext.invalidate attaches invocationCleanupErrors only if
+sys.exception() is not None. Otherwise it raises ExceptionGroup or a
+single critical BaseException. runJob._terminateJob only reads the
+invocationCleanupErrors attribute and cannot distinguish that cleanup-only
+failure from an ordinary capability failure. If memory/IO abort succeeds,
+the Job reports resolved, empty cleanupErrors and no JobCleanupFailed,
+despite actual invocation cleanup failure. This contradicts CP-8.02.
+Deterministic reproduction: register a successful handler, inject an
+OSError in invocation workspace.close (or another invocation cleanup
+action independent of transaction abort), run the Job; assert terminal
+Failed, UNRESOLVED, cleanup evidence, typed failure. Ensure ordinary
+capability ExceptionGroup is not incorrectly classified as cleanup.
+The critical-only branch also drops the remaining cleanup errors.
+Represent cleanup evidence explicitly on every path, not solely through
+attributes on the primary exception.
+
+G8-R2: nested invocation cleanup evidence is overwritten or silently lost.
+invalidate assigns primary.invocationCleanupErrors = tuple(errors); nested
+capability calls can unwind the same exception through multiple contexts,
+each with independent failing cleanup. The outer assignment discards the
+inner evidence. Failure to assign attributes is silently swallowed.
+A handler can also catch a nested invocation exception; determine how
+unresolved cleanup survives that catch at the actual Job boundary.
+Use execution-owned evidence or equivalent robust aggregation; preserve
+all errors, primary identity and quarantine. Tests: nested invocation
+inner and outer distinct cleanup failures; caught inner failure cannot
+produce falsely resolved/successful Job; cleanup-only multiple errors.
+
+G8-R3: unsafe subsequent admission is not contained.
+The completion report explicitly defers enforcement to executor step 4.
+However, current caller-driven runs have no executor, and G8 acceptance
+review explicitly required no unsafe subsequent caller-driven execution.
+runJob currently records PARTIALLY_ACCEPTED after memory commit and IO
+failure and returns; no runtime admission guard is added. Reproduce using
+existing IO failure test, then restore IO commit and attempt unrelated
+writer Job on same runtime. A clean later transaction is not proof of
+reconciled prior authority. Establish run-scoped unsafe containment for
+unresolved/partial authority, independent of the optional executor, or
+obtain explicit design-owner decision to change this requirement.
+Preserve inspection/termination and existing quarantine as appropriate.
+Test subsequent admission refusal before any new transaction/handler
+execution, including non-opted-in runs. Do not invent automatic recovery.
+
+G8-R4: exceptional boundary and early failure coverage.
+runJob now catches BaseException but jobExecutionBoundary resolves False
+on all such exceptions except JobCleanupFailed. For an interrupt after
+authoritative memory acceptance (e.g. KeyboardInterrupt from IO commit),
+the Job records authoritativeStateAccepted=True and PARTIALLY_ACCEPTED,
+then re-raises the original interrupt; LLM scope sees False. Preserve
+actual acceptance evidence on exceptional exit, without swallowing
+interrupts or bypassing quarantine. For internally-created Jobs also
+ensure caller has recoverable terminal evidence. Add deterministic tests
+for IO open failure before unit.start, unit start failure, independent IO
+abort and unit cleanup errors, interrupts before and after commit, and
+ordinary success/failure compatibility. Existing test injects IO commit
+failure only as an ordinary Exception.
+Do not claim every admitted exit covered until boundary-level failures and
+these cases are tested. Existing start/cancel race remains assigned to
+step 3 tryStart, not a new step 2 blocker.
+
+Verification gate:
+Worker reports Python 3.13 shim, seven new passing tests and baseline
+34 failures / 6 collection errors, plus 86 AI Buddy tests passing.
+These are useful development evidence, not target-runtime acceptance.
+Require actual Python 3.15 independent regression and compatibility
+verification at exact corrected SHA; report 3.14 compatibility/fallback
+where applicable to project requirements. No acceptance based on shim.
+No reason to reopen the step contract or expand executor scope.
+
+OWNERSHIP EXPECTATION
+Integration / platform correction and independent acceptance. Analyzer
+findings do not grant implementation assignment or branch authority.
+
+BLOCKING
+Yes, step 2 acceptance and dependent steps 3-6. Original defect correction
+may be retained; request focused correction, not wholesale rewrite.
+
+RELEVANT MATERIAL
+Exact reviewed integration a4b1b871c02252ce08c9167af4ce8886dc839631
+ai-workflow/mail/integration/inbox/2026-11-27-ai-buddy-g8-terminal-job-completion.txt
+backend/context/codeEntryContext.py invalidate, _MemoryFacade.close
+backend/application/applicationRuntime.py runJob, _terminateJob
+backend/llm/executionSessions.py jobExecutionBoundary
+backend/orchestration/runtime.py Job, OrchestrationUnit
+tests/backend/application/test_openTransactionFailure.py
+CP revision 3 sections 8, 10; analyzer review r3 commit ba5e56b.
+
+REPORT BACK
+Corrected exact SHA, disposition of each finding, deterministic regressions
+and target-runtime evidence. Preserve existing completion report as history.
+
+NOTES
+Source-review findings and proposed reproductions, not independently
+executed failures. No source changes, acceptance, assignments or rollback
+issued. Worker branch ref unavailable through connector.
