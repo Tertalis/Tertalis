@@ -1,12 +1,38 @@
-TERTALIS MIGRATION - EMERGENCY THREAD HANDOFF
-=============================================
-Recorded: 2026-11-14
-Status: authoritative continuation handoff for the sole authorized
-        migration conversation; the originating conversation is STOPPED.
-Repository: EnterTheNameHere/Turnix
-Coordination ref: actant-integration (always specify explicitly)
+TERTALIS MIGRATION - CONTINUATION HANDOFF
+========================================
+Updated: 2026-11-27
+Repository: Tertalis/Tertalis
+Coordination ref: integration
 Migration plan: ai-workflow/knowledge/tertalis-migration-plan.txt
 Shared index: ai-workflow/index.txt
+
+CURRENT MIGRATION DECISION - 2026-11-27
+---------------------------------------
+User explicitly lifted the global migration/development freeze. Normal work
+may proceed under the canonical ownership, admission, assignment and
+integration rules; existing ownership claims do not expire automatically.
+AI Buddy development during the migration was intentional and user-directed,
+using the Tertalis organization, not the legacy repository. The original
+migration conversation was unavailable on Android; this continuation
+reconciles records that lagged actual work.
+Repository separation, identity migration and centralized file coordination
+are substantially complete. Formal migration closure remains pending:
+verify repository readiness, accepted platform SHA provenance, and active
+workstream routing; reconcile operational records without rewriting history.
+GitHub-native coordination (M5) is a separate development workstream and
+is not a migration closure prerequisite. File-based coordination remains
+authoritative until an explicitly approved, verified cutover. Semantic
+design reconciliation, PackageManager and CLI are likewise separate work.
+Earlier freeze statements and legacy repository routing in migration
+history are historical and superseded by this decision.
+
+NEXT ACTION
+-----------
+Perform the bounded repository readiness audit; reconcile active records,
+then present migration closure for user review. No automatic upgrades,
+branch deletions or ownership releases are authorized by freeze removal.
+
+HISTORICAL HANDOFF (2026-11-14 onward; superseded where conflicting)
 
 EMERGENCY / RECOVERY INSTRUCTION
 --------------------------------
