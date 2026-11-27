@@ -168,6 +168,18 @@ design reconciliation, PackageManager and CLI are likewise separate work.
 Earlier freeze statements and legacy repository routing in migration
 history are historical and superseded by this decision.
 
+REPOSITORY READINESS AUDIT - 2026-11-27
+----------------------------------------
+All six integration trees inspected; default main verified; all five App
+repositories retain only their local ai-workflow/index.txt and no root
+platform docs/design. Shared implementation files match platform 3f85c86.
+AI Buddy 2a905b8 and Materialization Test 1c6e307 restore shared root
+.gitignore and scope application rules locally; the latter retires 18
+legacy coordination files preserved at feb060a. Current workstream routing
+and AI Buddy commit status reconciled. Exact accepted migrated platform SHA
+provenance and runtime compatibility remain separate, not proven by this
+read-only comparison. No ownership release or new assignment inferred.
+
 OPEN COORDINATION
 -----------------
 Global migration/development freeze explicitly lifted by the user on
