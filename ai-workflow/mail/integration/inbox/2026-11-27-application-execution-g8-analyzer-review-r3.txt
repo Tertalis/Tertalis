@@ -1,0 +1,68 @@
+FROM
+implementation-request analyzer
+
+TO
+integration
+
+SUBJECT
+G8 final correction review: acceptance and continuation recommended
+
+STATUS
+finding
+
+CONTEXT
+Reviewed integration 40d4465f00cea30011ba4de0e4cfd5ffceabbc17 and the
+R3a/R3b completion report. User confirmed local Python 3.15 tests pass
+before each published implementation commit. This is source review plus
+user-reported target-runtime verification, not analyzer-executed tests.
+
+REQUEST / INFORMATION
+All G8-R1 through R4 findings, including R3a and R3b, are addressed.
+Recommend Integration accept step 2 at exact source SHA
+40d4465f00cea30011ba4de0e4cfd5ffceabbc17 and proceed through ordinary
+authorization to step 3 (Job completion, tryStart, Clock and manifest).
+
+R3a: saveApplication and captureSaveBundle guard authority under the
+runtime lane before capture/publication/acceptance. Regression cases
+cover partial and unresolved authority, store calls, accepted identity
+and generation preservation, and diagnostic reads.
+R3b: invokeCapability now checks authority regardless of memoryView.
+Regression cases cover explicit transaction view, nested Job poisoning,
+outer commit refusal and termination. Earlier R1/R2/R4 corrections
+remain intact. 26 G8 tests reported, with mutation checks demonstrating
+the new guards are exercised.
+
+Non-blocking lifecycle consideration: onUnload retains existing direct
+committed-State cleanup context authority. Preserve existing behavior
+for this slice; do not interpret it as automatic reconciliation or
+permission to publish unsafe State. Review cleanup-context authority
+and actual hook cleanup behavior at step 5, without expanding G8.
+The current termination regression demonstrates runtime.close, not
+all possible Pack onUnload behavior.
+
+No additional G8 corrections requested. Step 3 must still satisfy CP-10
+callback eligibility/dispatch, atomic start/cancel, exceptional exits,
+scope release and independent verification. No later stage is accepted
+by this review.
+
+OWNERSHIP EXPECTATION
+Integration owns exact-SHA acceptance and normal assignment/admission.
+Analyzer recommends acceptance; does not assign workers or change
+design authority.
+
+BLOCKING
+No outstanding G8 analyzer finding. Proceed after Integration acceptance.
+
+RELEVANT MATERIAL
+40d4465f00cea30011ba4de0e4cfd5ffceabbc17
+backend/application/applicationRuntime.py v28
+tests/backend/application/test_openTransactionFailure.py v3
+Prior analyzer reviews 1c62e20 and cb7c133.
+
+REPORT BACK
+Step 2 acceptance record and next authorized step implementation evidence.
+
+NOTES
+No independently executed tests, source modifications or branch assignment.
+User-local Python 3.15 green test gate acknowledged; worker shim results
+are supplementary only.
