@@ -1,6 +1,16 @@
 TERTALIS AI BUDDY WORKSTREAM STATE
 =================================
 
+MIGRATION CLOSURE VERIFICATION - 2026-11-27
+-------------------------------------------
+User reports successful tests in all six migrated repositories. Exact tested
+local SHAs, commands, counts, runtimes and logs for this report were not
+supplied; no independent execution is claimed.
+Retained platform baseline: f30c393f7d723f9f8a897ff74a054aed1a1e4cd4 (synchronized; equivalent de124f3 used in user-verified materialization).
+Evidence: ai-workflow/knowledge/application-platform-provenance-2026-11-27.txt.
+Migration is closed by user direction; ordinary ownership and integration rules
+remain. No new platform adoption or assignment is implied.
+
 IDENTITY
 --------
 Workstream ID: ai-buddy
@@ -42,8 +52,9 @@ Verified/exercised behavior (user-reported, Python 3.15, user's Windows host,
   local checkout with Tertalis de124f3 platform source):
 - checkpoint tests A-F passed after the corrections listed in the record; live
   Stage 1-6 demonstrations against a user-run llama-server reported working.
-- No independent or Integration verification. No post-move test run reported
-  after relocating tests to tests/first_party/applications/aiBuddy/.
+- No independent or Integration verification. User subsequently reported
+  successful tests in all six migrated repositories (see closure above); exact
+  test selection and local revision were not specified.
 
 Backend/shared capability available but not yet adopted by this Application:
 - Managed llama.cpp with ER-03 trusted host composition, grants and explicit
