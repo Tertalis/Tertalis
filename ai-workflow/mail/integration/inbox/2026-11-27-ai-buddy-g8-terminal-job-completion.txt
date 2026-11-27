@@ -1,0 +1,100 @@
+FROM
+AI Buddy implementer
+
+TO
+Integration
+
+SUBJECT
+Application execution plan step 2: G8 fix and terminal-Job guarantee ready for review
+
+STATUS
+completion
+
+CONTEXT
+Integration concluded the application-execution design review at ba5e56b and
+recommended staged implementation. Plan step 2 (G8, CP-8.01 / CP-8.02) may
+proceed independently of the later gates. The user authorized implementation
+on a Tertalis branch.
+
+REQUEST / INFORMATION
+Branch g8-open-transaction-failure, based on integration ba5e56b. Changes:
+
+1. backend/context/codeEntryContext.py (v32)
+   _MemoryFacade.close aborts every still-active invocation-opened
+   transaction innermost first (reverse creation order) through the internal
+   CommittedValueTransaction handle, not the facade that requires a valid
+   context. Already committed/aborted ones are skipped. Abort failures are
+   collected and raised as one (Base)ExceptionGroup after all were tried.
+   invalidate() now also records primary.invocationCleanupErrors (the
+   existing invocationCleanupFailed flag is kept).
+
+2. backend/orchestration/runtime.py (v9)
+   NEW JobAuthority: resolved | unresolved | partially-accepted.
+   Job gains authority and cleanupErrors; fail() and cancel() take them as
+   keyword arguments (default resolved, no errors); pending cancellation and
+   succeed() record resolved.
+   NEW JobCleanupFailed(RuntimeError): job, primary, cleanupErrors, authority.
+   OrchestrationUnit.finish records the outcome even if the abort raises;
+   mutationResolved stays False so the unreleased staging is visible.
+
+3. backend/application/applicationRuntime.py (v26) runJob
+   Everything after admission (Job Running) is inside one guarded block,
+   including unit/IO creation and the early traces. A new _terminateJob
+   attempts IO abort and unit finish independently, collects every failure
+   (plus the invocation cleanup errors on the primary), makes the Job
+   terminal BEFORE any trace, then emits the existing trace events and, when
+   needed, job-authority-unresolved. Disposition:
+     memory accepted and IO not committed      -> partially-accepted
+     any cleanup error, memory or IO unreleased -> unresolved
+     otherwise                                  -> resolved
+   Cleanup errors raise JobCleanupFailed after the Job is terminal (from the
+   primary). Non-Exception interrupts (KeyboardInterrupt etc.) now also leave
+   a terminal Failed Job and keep propagating. Partial acceptance without
+   cleanup errors still returns the Failed Job, as before. Rejected requests
+   (before admission) create no Job. Execution-resource quarantine untouched.
+
+4. backend/llm/executionSessions.py (v9): jobExecutionBoundary resolves the
+   LLM mutation scope from err.job.authoritativeStateAccepted for
+   JobCleanupFailed instead of always False.
+
+5. backend/values/committed.py (v19): CommittedValueTransaction.active.
+   backend/io/managedIo.py (v12): ManagedIoTransaction.state.
+
+6. NEW tests/backend/application/test_openTransactionFailure.py (v1):
+   reproducer (Failed, primary kept, state unchanged, resolved, next Job
+   runs); nested chain depth 2 and 3 aborted innermost first; committed and
+   aborted children skipped; injected nested-abort failure -> JobCleanupFailed,
+   terminal Failed Job, unresolved, primary and both cleanup errors as
+   evidence; IO commit failure after memory acceptance -> partially-accepted;
+   success and pending cancellation -> resolved.
+
+OWNERSHIP EXPECTATION
+Tertalis platform (Integration acceptance).
+
+BLOCKING
+Yes: plan steps 3-6 build on the accepted step 2.
+
+RELEVANT MATERIAL
+design/working/application-execution-checkpoint-01.txt rev 3 (CP-8.01,
+CP-8.02); design/working/application-execution-implementation-plan-01.txt
+rev 3 step 2; ai-workflow/knowledge/ai-buddy-g8-open-transaction-traceback.txt.
+
+REPORT BACK
+Acceptance with the exact Tertalis SHA, or findings.
+
+NOTES
+Verified here only under Python 3.13 with a local shim (not authoritative):
+full tests/ run shows the same pre-existing shim failures as ba5e56b (34
+failed, 6 collection errors in tests/first_party/llmDrivers) plus the 7 new
+tests passing; tests/backend/telemetry/test_subscriptions.py::
+test_mixed_cadences... flips between runs on both trees (timing). AI Buddy
+33d5a2a tests (86) pass on this platform. Python 3.15 / Windows verification
+is still required.
+Not in this step: "no later Job is claimed safe" is carried as evidence
+(disposition unresolved); enforcing it (phase unsafe) is executor step 4,
+CP-8.03. CP-8.02 groups partial acceptance under unresolved; the plan's
+three values are implemented, partially-accepted being the more specific.
+New public surface to review: JobAuthority, JobCleanupFailed, Job.authority,
+Job.cleanupErrors, CommittedValueTransaction.active,
+ManagedIoTransaction.state, and runJob raising JobCleanupFailed where it
+previously returned a Failed Job silently after invocation cleanup errors.

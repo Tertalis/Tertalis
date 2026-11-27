@@ -1,4 +1,4 @@
-# file: backend/orchestration/runtime.py ; version: 8
+# file: backend/orchestration/runtime.py ; version: 9
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -9,7 +9,7 @@ from backend.core.runtimeIds import newRuntimeId
 from backend.orchestration.cancellation import CancellationSignal
 from backend.values.committed import CommittedValueLayer, CommittedValueTransaction
 
-__all__ = ["Job", "JobState", "OrchestrationUnit", "OrchestrationUnitOutcome"]
+__all__ = ["Job", "JobAuthority", "JobCleanupFailed", "JobState", "OrchestrationUnit", "OrchestrationUnitOutcome"]
 
 
 class JobState(StrEnum):
@@ -22,6 +22,21 @@ class JobState(StrEnum):
     CANCELLED = "Cancelled"
     TIMED_OUT = "TimedOut"
     SUPERSEDED = "Superseded"
+
+
+class JobAuthority(StrEnum):
+    """
+    What a terminal Job proves about the authority it worked under.
+
+    RESOLVED: nothing was accepted, or everything was fully accepted, and all
+    staging was released. UNRESOLVED: cleanup failed or staging could not be
+    released, so later work must not assume a clean authority. PARTIALLY_ACCEPTED:
+    authoritative memory was accepted but the paired persistent I/O was not.
+    """
+
+    RESOLVED = "resolved"
+    UNRESOLVED = "unresolved"
+    PARTIALLY_ACCEPTED = "partially-accepted"
 
 
 class OrchestrationUnitOutcome(StrEnum):
@@ -42,6 +57,26 @@ _JOB_TERMINAL_STATES = {
 }
 
 
+class JobCleanupFailed(RuntimeError):
+    """
+    Raised by Job execution after the Job is terminal when cleanup failed.
+
+    The Job is already terminal and carries the same evidence: job.error is the
+    primary error (None for a cancelled Job), job.cleanupErrors the cleanup
+    failures, job.authority the authority disposition.
+    """
+
+    def __init__(self, job: Job) -> None:
+        self.job = job
+        self.primary = job.error
+        self.cleanupErrors = job.cleanupErrors
+        self.authority = job.authority
+        super().__init__(
+            f"Job {job.jobId} ended {job.state} but cleanup failed "
+            f"({len(job.cleanupErrors)} error(s)); authority {job.authority}.",
+        )
+
+
 @dataclass(slots=True)
 class Job:
     """Observable requested-work lifecycle independent of execution mechanism."""
@@ -51,6 +86,8 @@ class Job:
     result: object | None = None
     error: BaseException | None = None
     authoritativeStateAccepted: bool = False
+    authority: JobAuthority | None = None
+    cleanupErrors: tuple[BaseException, ...] = ()
     _cancellationSignal: CancellationSignal = field(
         default_factory=CancellationSignal,
         init=False,
@@ -69,6 +106,10 @@ class Job:
             raise TypeError("Job.error must be a BaseException or None.")
         if type(self.authoritativeStateAccepted) is not bool:
             raise TypeError("Job.authoritativeStateAccepted must be a bool.")
+        if self.authority is not None and not isinstance(self.authority, JobAuthority):
+            raise TypeError("Job.authority must be a JobAuthority or None.")
+        if type(self.cleanupErrors) is not tuple or not all(isinstance(e, BaseException) for e in self.cleanupErrors):
+            raise TypeError("Job.cleanupErrors must be a tuple of BaseException.")
 
     @classmethod
     def new(cls) -> Job:
@@ -105,6 +146,7 @@ class Job:
             requested = self._cancellationSignal.request()
             if self.state is JobState.PENDING:
                 self.state = JobState.CANCELLED
+                self.authority = JobAuthority.RESOLVED
             return requested
 
     def start(self) -> None:
@@ -114,22 +156,34 @@ class Job:
                 raise RuntimeError("Only a Pending Job can start.")
             if self._cancellationSignal.requested:
                 self.state = JobState.CANCELLED
+                self.authority = JobAuthority.RESOLVED
                 return
             self.state = JobState.RUNNING
 
     def succeed(self, result: object = None) -> None:
-        """Records successful terminal completion."""
+        """Records successful terminal completion with fully resolved authority."""
         self._finish(JobState.SUCCEEDED, result=result)
 
-    def fail(self, error: BaseException) -> None:
-        """Records failure terminal completion with exception evidence."""
+    def fail(
+        self,
+        error: BaseException,
+        *,
+        authority: JobAuthority = JobAuthority.RESOLVED,
+        cleanupErrors: tuple[BaseException, ...] = (),
+    ) -> None:
+        """Records failure with the primary error, cleanup evidence and authority."""
         if not isinstance(error, BaseException):
             raise TypeError("Job failure must carry a BaseException.")
-        self._finish(JobState.FAILED, error=error)
+        self._finish(JobState.FAILED, error=error, authority=authority, cleanupErrors=cleanupErrors)
 
-    def cancel(self) -> None:
+    def cancel(
+        self,
+        *,
+        authority: JobAuthority = JobAuthority.RESOLVED,
+        cleanupErrors: tuple[BaseException, ...] = (),
+    ) -> None:
         """Records intentional cancellation after running execution acknowledges it."""
-        self._finish(JobState.CANCELLED)
+        self._finish(JobState.CANCELLED, authority=authority, cleanupErrors=cleanupErrors)
 
     def _finish(
         self,
@@ -137,6 +191,8 @@ class Job:
         *,
         result: object | None = None,
         error: BaseException | None = None,
+        authority: JobAuthority = JobAuthority.RESOLVED,
+        cleanupErrors: tuple[BaseException, ...] = (),
     ) -> None:
         """Transitions a Running Job to exactly one terminal outcome."""
         with self._lane:
@@ -148,7 +204,14 @@ class Job:
                 raise ValueError("Job terminal transition requires a terminal JobState.")
             if error is not None and not isinstance(error, BaseException):
                 raise TypeError("Terminal Job error must be a BaseException or None.")
+            if not isinstance(authority, JobAuthority):
+                raise TypeError("Terminal Job authority must be a JobAuthority.")
+            cleanupErrors = tuple(cleanupErrors)
+            if not all(isinstance(e, BaseException) for e in cleanupErrors):
+                raise TypeError("Job cleanup errors must be BaseException instances.")
             self.state = state
+            self.authority = authority
+            self.cleanupErrors = cleanupErrors
             self.result = result
             self.error = error
 
@@ -267,7 +330,13 @@ class OrchestrationUnit:
                     "Completed mutation-bearing OrchestrationUnit requires explicit mutation resolution.",
                 )
         elif self._transaction is not None and not self._mutationResolved:
-            self._transaction.abort()
+            try:
+                self._transaction.abort()
+            except BaseException:
+                # The outcome is still recorded; mutationResolved stays False
+                # so callers can see the staging was not released.
+                self.outcome = outcome
+                raise
             self._mutationResolved = True
 
         self.outcome = outcome

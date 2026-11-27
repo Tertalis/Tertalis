@@ -1,4 +1,4 @@
-# file: backend/values/committed.py ; version: 18
+# file: backend/values/committed.py ; version: 19
 from __future__ import annotations
 
 import base64
@@ -499,6 +499,11 @@ class CommittedValueTransaction(ValueLayer):
         self._state = "active"
         if parent is not None:
             parent._children.add(self)
+
+    @property
+    def active(self) -> bool:
+        """Reports whether this transaction is still unresolved."""
+        return self._state == "active"
 
     def openTransaction(self) -> CommittedValueTransaction:
         self._requireActive()

@@ -1,4 +1,4 @@
-# file: backend/application/applicationRuntime.py ; version: 25
+# file: backend/application/applicationRuntime.py ; version: 26
 from __future__ import annotations
 
 from contextlib import suppress
@@ -17,7 +17,8 @@ from backend.runtime.executionResources import ExecutionResourceService
 from backend.llm.streamingRuntime import LlmProcessingPipeline, LlmProviderRegistry
 from backend.observation import ObservationService
 from backend.orchestration.cancellation import CancellationSignal, ExecutionCancelled
-from backend.orchestration.runtime import Job, JobState, OrchestrationUnit, OrchestrationUnitOutcome
+from backend.orchestration.runtime import (Job, JobAuthority, JobCleanupFailed, JobState, OrchestrationUnit,
+    OrchestrationUnitOutcome)
 from backend.packs.runtime import PackLoader, PackResolver
 from backend.process.configuration import processToolDefinitionsFromConfig
 from backend.process.context import ProcessFacade
@@ -645,28 +646,39 @@ class ApplicationRuntime:
                 )
                 return activeJob
 
-            unit = OrchestrationUnit.mutation(
-                applicationRunId=self.applicationRun.applicationRunId,
-                transactionBase=self.applicationRun.application.committedState,
-            )
-            ioTransaction = self.io.openTransaction()
+            unit: OrchestrationUnit | None = None
+            ioTransaction: ManagedIoTransaction | None = None
             orchestrationAttributes = {
                 "jobId": activeJob.jobId,
-                "orchestrationUnitId": unit.orchestrationUnitId,
                 "applicationId": self.applicationRun.application.applicationId,
-                "applicationRunId": unit.applicationRunId,
-                "transactionId": unit.transactionId,
-                "ioTransactionId": ioTransaction.ioTransactionId,
+                "applicationRunId": self.applicationRun.applicationRunId,
                 "capabilityId": capabilityId,
                 "workKind": "job-capability",
             }
-            self.trace("OrchestrationUnitCreated", attributes=orchestrationAttributes)
-            self.trace("OrchestrationUnitTransactionOpened", attributes=orchestrationAttributes)
-            self.trace("managed-io-transaction-opened", attributes=orchestrationAttributes)
-            unit.start()
-            self.trace("OrchestrationUnitStarted", attributes=orchestrationAttributes)
-            self.trace("job-started", attributes=orchestrationAttributes)
+            # From here the Job is admitted (Running): every exit records a
+            # terminal Job with an authority disposition (CP-8.01, CP-8.02).
             try:
+                unit = OrchestrationUnit.mutation(
+                    applicationRunId=self.applicationRun.applicationRunId,
+                    transactionBase=self.applicationRun.application.committedState,
+                )
+                ioTransaction = self.io.openTransaction()
+                orchestrationAttributes = {
+                    "jobId": activeJob.jobId,
+                    "orchestrationUnitId": unit.orchestrationUnitId,
+                    "applicationId": self.applicationRun.application.applicationId,
+                    "applicationRunId": unit.applicationRunId,
+                    "transactionId": unit.transactionId,
+                    "ioTransactionId": ioTransaction.ioTransactionId,
+                    "capabilityId": capabilityId,
+                    "workKind": "job-capability",
+                }
+                self.trace("OrchestrationUnitCreated", attributes=orchestrationAttributes)
+                self.trace("OrchestrationUnitTransactionOpened", attributes=orchestrationAttributes)
+                self.trace("managed-io-transaction-opened", attributes=orchestrationAttributes)
+                unit.start()
+                self.trace("OrchestrationUnitStarted", attributes=orchestrationAttributes)
+                self.trace("job-started", attributes=orchestrationAttributes)
                 activeJob.cancellationSignal.raiseIfRequested()
                 with processJobScope(activeJob):
                     result = self.invokeCapability(
@@ -691,47 +703,95 @@ class ApplicationRuntime:
                     )
                     raise
                 self.trace("managed-io-transaction-committed", attributes=orchestrationAttributes)
-            except ExecutionCancelled:
-                mutationWasResolved = unit.mutationResolved
-                try:
-                    ioTransaction.abort()
-                except RuntimeError:
-                    pass
-                else:
-                    self.trace("managed-io-transaction-aborted", attributes=orchestrationAttributes)
-                unit.finish(OrchestrationUnitOutcome.CANCELLED)
-                if not mutationWasResolved:
-                    self.trace("OrchestrationUnitTransactionAborted", attributes=orchestrationAttributes)
-                self.trace("OrchestrationUnitCancelled", attributes=orchestrationAttributes)
-                activeJob.cancel()
-                self.trace("job-cancelled", attributes=orchestrationAttributes)
-            except Exception as err:  # noqa: BLE001 - capability failure may originate from arbitrary Pack code.
-                mutationWasResolved = unit.mutationResolved
-                try:
-                    ioTransaction.abort()
-                except RuntimeError:
-                    pass
-                else:
-                    self.trace("managed-io-transaction-aborted", attributes=orchestrationAttributes)
-                unit.finish(OrchestrationUnitOutcome.FAILED)
-                if not mutationWasResolved:
-                    self.trace("OrchestrationUnitTransactionAborted", attributes=orchestrationAttributes)
-                self.trace(
-                    "OrchestrationUnitFailed",
-                    message=str(err),
-                    attributes=orchestrationAttributes,
-                    level="error",
-                )
-                activeJob.fail(err)
-                self.trace(
-                    "job-failed",
-                    message=str(err),
-                    attributes=orchestrationAttributes,
-                    level="error",
-                )
-            else:
                 unit.finish(OrchestrationUnitOutcome.COMPLETED)
-                self.trace("OrchestrationUnitCompleted", attributes=orchestrationAttributes)
+            except BaseException as err:  # noqa: BLE001 - capability failure may originate from arbitrary Pack code.
+                cancelled = isinstance(err, ExecutionCancelled)
+                self._terminateJob(
+                    activeJob,
+                    unit,
+                    ioTransaction,
+                    primary=err,
+                    cancelled=cancelled,
+                    attributes=orchestrationAttributes,
+                )
+                if not isinstance(err, Exception):
+                    # Interrupts keep propagating; the Job is already terminal
+                    # and the cleanup evidence stays on it.
+                    raise
+                if activeJob.cleanupErrors:
+                    raise JobCleanupFailed(activeJob) from (None if cancelled else err)
+            else:
                 activeJob.succeed(result)
+                self.trace("OrchestrationUnitCompleted", attributes=orchestrationAttributes)
                 self.trace("job-completed", attributes=orchestrationAttributes)
             return activeJob
+
+    def _terminateJob(
+        self,
+        job: Job,
+        unit: OrchestrationUnit | None,
+        ioTransaction: ManagedIoTransaction | None,
+        *,
+        primary: BaseException,
+        cancelled: bool,
+        attributes: dict[str, object],
+    ) -> None:
+        """
+        Releases a failed or cancelled Job's staging and makes the Job terminal.
+
+        Each cleanup step is attempted regardless of earlier failures; every
+        failure, including invocation cleanup errors recorded on the primary,
+        becomes cleanup evidence on the Job. The Job is terminal before any
+        trace is emitted, so tracing cannot leave it Running.
+        """
+        cleanupErrors: list[BaseException] = list(getattr(primary, "invocationCleanupErrors", ()))
+        mutationWasResolved = unit is None or unit.mutationResolved
+        ioAborted = False
+        if ioTransaction is not None and ioTransaction.state == "active":
+            try:
+                ioTransaction.abort()
+            except BaseException as error:  # noqa: BLE001 - collected as cleanup evidence.
+                cleanupErrors.append(error)
+            else:
+                ioAborted = True
+        if unit is not None and unit.started and unit.outcome is None:
+            try:
+                unit.finish(OrchestrationUnitOutcome.CANCELLED if cancelled else OrchestrationUnitOutcome.FAILED)
+            except BaseException as error:  # noqa: BLE001 - collected as cleanup evidence.
+                cleanupErrors.append(error)
+        elif unit is not None and not unit.started and unit.memoryView is not None and unit.memoryView.active:
+            try:
+                unit.memoryView.abort()
+            except BaseException as error:  # noqa: BLE001 - collected as cleanup evidence.
+                cleanupErrors.append(error)
+        memoryResolved = unit is None or unit.mutationResolved or (unit.memoryView is not None and not unit.memoryView.active)
+        ioState = None if ioTransaction is None else ioTransaction.state
+        if job.authoritativeStateAccepted and ioState != "committed":
+            authority = JobAuthority.PARTIALLY_ACCEPTED
+        elif cleanupErrors or not memoryResolved or ioState == "active":
+            authority = JobAuthority.UNRESOLVED
+        else:
+            authority = JobAuthority.RESOLVED
+        evidence = tuple(cleanupErrors)
+        if cancelled:
+            job.cancel(authority=authority, cleanupErrors=evidence)
+        else:
+            job.fail(primary, authority=authority, cleanupErrors=evidence)
+
+        if ioAborted:
+            self.trace("managed-io-transaction-aborted", attributes=attributes)
+        if not mutationWasResolved and memoryResolved:
+            self.trace("OrchestrationUnitTransactionAborted", attributes=attributes)
+        if cancelled:
+            self.trace("OrchestrationUnitCancelled", attributes=attributes)
+            self.trace("job-cancelled", attributes=attributes)
+        else:
+            self.trace("OrchestrationUnitFailed", message=str(primary), attributes=attributes, level="error")
+            self.trace("job-failed", message=str(primary), attributes=attributes, level="error")
+        if evidence or authority is not JobAuthority.RESOLVED:
+            self.trace(
+                "job-authority-unresolved",
+                message="; ".join(f"{type(error).__name__}: {error}" for error in evidence) or str(primary),
+                attributes={**attributes, "authority": str(authority), "cleanupErrorCount": len(evidence)},
+                level="error",
+            )

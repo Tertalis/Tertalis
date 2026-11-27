@@ -1,4 +1,4 @@
-# file: backend/io/managedIo.py ; version: 11
+# file: backend/io/managedIo.py ; version: 12
 from __future__ import annotations
 
 import contextlib
@@ -126,6 +126,11 @@ class ManagedIoTransaction:
         self._io = io
         self._writes: dict[Path, str] = {}
         self._state = "active"
+
+    @property
+    def state(self) -> str:
+        """Returns active, committed or aborted."""
+        return self._state
 
     def readObservedText(self, path):
         self._requireActive()

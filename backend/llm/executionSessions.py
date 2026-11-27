@@ -1,4 +1,4 @@
-# file: backend/llm/executionSessions.py ; version: 8
+# file: backend/llm/executionSessions.py ; version: 9
 """Trusted LLM composition over ER-01, with no provider-specific realization.
 
 Binding/owner creation and adapter evidence are backend hooks, never Pack grants.
@@ -26,6 +26,7 @@ from backend.llm.errors import (
 )
 from backend.llm.llmTypes import LlmExecutionProfile
 from backend.orchestration.cancellation import ExecutionCancelled
+from backend.orchestration.runtime import JobCleanupFailed
 from backend.runtime.executionResources import (
     EffectStatus, ProviderEffect, Quiescence, ResourceConflict, ResourceState, ResourceCleanupError,
 )
@@ -427,6 +428,9 @@ def jobExecutionBoundary(method):
         token = _mutation.set(scope)
         try:
             result = method(*args, **kwargs)
+        except JobCleanupFailed as err:
+            scope.resolve(err.job.authoritativeStateAccepted)
+            raise
         except BaseException:
             scope.resolve(False)
             raise

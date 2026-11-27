@@ -1,7 +1,6 @@
-# file: backend/context/codeEntryContext.py ; version: 31
+# file: backend/context/codeEntryContext.py ; version: 32
 from __future__ import annotations
 
-from contextlib import suppress
 from copy import deepcopy
 import sys
 from dataclasses import dataclass
@@ -256,11 +255,30 @@ class _MemoryFacade:
         return facade
 
     def close(self) -> None:
-        """Best-effort aborts unresolved transactions owned by this invocation."""
-        for transaction in reversed(self._openedTransactions):
-            with suppress(RuntimeError):
+        """
+        Aborts every still-active transaction opened by this invocation.
+
+        Facades are registered in creation order and a child is always created
+        after its parent, so reverse order aborts innermost first. Aborts go
+        through the internal transaction handles because invocation authority
+        has normally already ended when close runs. Transactions the
+        capability already committed or aborted are skipped; every real abort
+        failure is collected and raised together after all were attempted.
+        """
+        opened, self._openedTransactions[:] = list(self._openedTransactions), []
+        errors: list[BaseException] = []
+        for facade in reversed(opened):
+            transaction = facade._transaction
+            if not transaction.active:
+                continue
+            try:
                 transaction.abort()
-        self._openedTransactions.clear()
+            except BaseException as error:  # noqa: BLE001 - collected as cleanup evidence.
+                errors.append(error)
+        if errors:
+            if all(isinstance(error, Exception) for error in errors):
+                raise ExceptionGroup("Memory transaction cleanup failed.", errors)
+            raise BaseExceptionGroup("Memory transaction cleanup failed.", errors)
 
 
 class _CapabilityFacade:
@@ -500,6 +518,7 @@ class CodeEntryContext:
             if primary is not None:
                 try:
                     primary.invocationCleanupFailed = True
+                    primary.invocationCleanupErrors = tuple(errors)
                 except BaseException:
                     pass
             else:
