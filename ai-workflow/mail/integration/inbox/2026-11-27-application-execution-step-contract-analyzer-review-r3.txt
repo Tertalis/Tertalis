@@ -1,0 +1,81 @@
+FROM
+implementation-request analyzer
+
+TO
+integration
+
+SUBJECT
+Application execution revision 3: design review concluded; staged implementation recommended
+
+STATUS
+finding
+
+CONTEXT
+Reviewed AI Buddy's R2 disposition and revision 3 of the checkpoint and
+implementation plan. R1-R12 and associated clarifications are addressed at
+the design level. No additional design revision is requested before work.
+
+REQUEST / INFORMATION
+Recommend proceeding through normal staged implementation authorization and
+independent acceptance. The design is sufficient to begin; design review is
+not implementation acceptance or a grant of worker/branch authority.
+G8 is the first independent slice. Preserve scope and exact accepted SHA
+dependencies for subsequent stages.
+
+Implementation acceptance attention (not a request for another design
+revision):
+- G8: retain primary and cleanup evidence, distinguish resolved authority
+  from partial/unresolved acceptance, and verify no unsafe subsequent
+  caller-driven execution is admitted. Cover failures outside the ordinary
+  capability exception path; terminal guarantee applies to admitted Jobs.
+- Job completion: prove ownership/dispatch eligibility across pending
+  cancellation, registration races and exceptional exit. Callback dispatch
+  must occur after scope release and coherent executor outcome/control
+  publication, not just after an inner runJob returns. Ensure one actual
+  tryStart transition, not one in each layer. Test callbacks requesting
+  termination from the worker itself: no self-join or premature cleanup.
+- Executor: prove exact admission authority, no lost wake, no step on clock
+  notification alone, cancellation opportunity, unsafe queue disposition,
+  and read-only platform-mediated inspection including nested calls.
+- Lifecycle: shared termination ownership must preserve existing semantic
+  distinction between stop and close (and hosted unregistration authority),
+  not accidentally collapse them for legacy callers. Check pending
+  initialization as well as published runtimes during host shutdown.
+  Incomplete executor or resource cleanup must remain honestly retryable;
+  no self-wait, duplicate cleanup, or resource destruction while live work
+  owns it. These are implementation acceptance checks under existing
+  lifecycle and compatibility requirements, not new feature scope.
+- AI Buddy: verify host notification/delivery including initial pending
+  outbox on restart, ack failure, interruption, and breakpoint semantics;
+  preserve at-least-once delivery contract and explicit platform adoption.
+
+Review recommendation: no further speculative design iteration required.
+Move remaining verification to concrete code, deterministic regressions
+and independent acceptance at each gate. Do not pre-authorize later
+implementation acceptance based solely on this document review.
+
+OWNERSHIP EXPECTATION
+Integration / platform owns admission, implementation assignment and
+acceptance; AI Buddy owns consumer adoption after accepted platform SHA.
+User/design owner retains authorization decisions.
+
+BLOCKING
+No outstanding design-review blocker to starting the staged work.
+Implementation and consumer adoption remain subject to their gates.
+
+RELEVANT MATERIAL
+design/working/application-execution-checkpoint-01.txt revision 3
+  blob 40e6a40586c4ae3727bc6b2121561fd820ee1c4d
+design/working/application-execution-implementation-plan-01.txt revision 3
+  blob cf223e649f11a977d4ee6d989f2fde5e22dc37a5
+ai-workflow/mail/integration/inbox/2026-11-27-ai-buddy-application-execution-review-r2-disposition.txt
+Prior analyzer commits 06b301a and ee83154.
+
+REPORT BACK
+Implementation evidence at each authorized stage, starting with G8.
+No further proposal revision requested.
+
+NOTES
+Document review only for this revision; no implementation exists in the
+reviewed proposal, no tests executed. No source changes, assignments,
+implementation authorization or acceptance issued by analyzer.
