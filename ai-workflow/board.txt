@@ -6,10 +6,13 @@ remain authoritative for their implementation, reviews and current STATE.
 Canonical location/ref: Tertalis/Tertalis integration, ai-workflow/board.txt.
 Last task-by-task workstream reconciliation: 2026-11-10.
 Coordination-location header reconciled: 2026-11-27.
-Global freeze lifted; repository readiness audit is not a new task assignment.
+Migration CLOSED 2026-11-27 by user direction; all six repositories passed
+user-reported tests. See knowledge/tertalis-migration-plan.txt and
+knowledge/application-platform-provenance-2026-11-27.txt.
+Global freeze lifted; ordinary workstream admission/ownership applies.
 CAUTION: the workstream entries below preserve earlier accepted-task evidence,
-not current live sessions or new implementation assignments. During migration,
-read the current coordination protocol, STATE and latest handoff before acting.
+not current live sessions or new implementation assignments. Before acting,
+read the current coordination protocol, STATE and relevant handoff.
 No prior 'import latest platform' direction in this historical projection is
 automatic adoption authority. Application upgrades require explicit Integrator
 scope and accepted SHA-based verification.
