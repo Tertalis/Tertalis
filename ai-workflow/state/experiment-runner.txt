@@ -1,3 +1,25 @@
+TERTALIS EXPERIMENT-RUNNER - CURRENT MIGRATION STATE
+==================================================
+Updated: 2026-11-27
+Working repository: Tertalis/Tertalis-Experiment-Runner
+Development branch: integration
+Audited Application HEAD: dd8e5cd8f4f872cf4f2445388d1097a78392f322
+Canonical coordination: Tertalis/Tertalis integration.
+Global freeze lifted 2026-11-27; normal admission and ownership apply.
+74 application-exclusive files. Prior usability acceptance 0a3b745 and platform adoption 70f0743 remain historical accepted evidence. No new task assigned by this audit.
+Shared platform files match the audited Tertalis source projection at
+3f85c867c45e1ccc07b31722572071ef3f4909aa, excluding repository-specific
+onboarding and centralized documentation/coordination. This is source
+observation only, not an accepted platform SHA or compatibility test.
+Retain earlier accepted evidence; verify exact migrated baseline provenance
+before recording a new accepted pairing. No automatic platform adoption.
+Earlier repository/branch routing, freeze and synchronization instructions
+below are historical; current canonical protocol governs. Earlier capability
+observations are tied to their recorded baselines, not fresh verification.
+
+HISTORICAL WORKSTREAM RECORD
+----------------------------
+
 EXPERIMENT RUNNER - CURRENT STATE / HANDOFF
 ==========================================
 Identity
