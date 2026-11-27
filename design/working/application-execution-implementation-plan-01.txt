@@ -1,0 +1,177 @@
+TERTALIS APPLICATION EXECUTION - IMPLEMENTATION PLAN #1
+=======================================================
+
+Current Tertalis working location:
+    design/working/application-execution-implementation-plan-01.txt
+
+Status:
+    NON-AUTHORITATIVE WORKING PLAN (planning only; nothing materialized)
+
+Design source:
+    design/working/application-execution-checkpoint-01.txt (cited as CP-n)
+
+Platform ref examined:
+    Tertalis/Tertalis integration 65e4951 (implementation as accepted at
+    f26210a); AI Buddy integration 33d5a2a.
+
+Purpose:
+    Lists per step the files to edit, create or remove so the platform runs
+    Applications continuously through the step contract, and AI Buddy moves
+    its loop onto it. Python 3.15 only. New files start at "version: 1";
+    edited files bump their version header. Code and test files stay ASCII.
+
+
+0. CHANGE SUMMARY
+=================
+
+    Step  Repository  Content
+    1     Tertalis    this plan and the checkpoint (design)
+    2     Tertalis    Job wait/callbacks; Clock; AppPack step declaration
+    3     Tertalis    ApplicationExecutor and lifecycle integration
+    4     AI Buddy    aiBuddy.step@1, loop on the executor, polling removed
+    5     both        verification (Windows/3.15 suite, AI Buddy live run)
+
+
+1. STEP 2 - BUILDING BLOCKS (backend, internal)
+===============================================
+
+1.01. EDIT backend/orchestration/runtime.py (Job)
+    a. wait(timeout=None) -> bool: blocks until terminal (Condition on the
+       existing _lane), True when terminal.
+    b. addDoneCallback(callback): runs immediately if terminal, otherwise
+       after _finish records the terminal state; callbacks run outside the
+       Job lane on the finishing thread; exceptions are caught and kept as
+       callback evidence (never change state). Pending -> Cancelled via
+       requestCancellation also fires callbacks (CP-5.01).
+
+1.02. NEW backend/runtime/clock.py
+    Clock protocol: now() -> aware datetime (local offset), monotonic() ->
+    float seconds, sleepUntil helpers for tests. SystemClock default;
+    ManualClock for tests (advance(seconds), wakes waiters).
+    EDIT backend/runtime/runtimeHost.py: RuntimeHost(clock=...) default
+    SystemClock; passed to ApplicationRuntime.
+    EDIT backend/application/applicationRuntime.py: holds the clock.
+    EDIT backend/context/codeEntryContext.py: read-only ctx.clock facade
+    (now() ISO string and datetime), valid only while the context is valid.
+
+1.03. EDIT backend/packs/runtime.py
+    PackDefinition gains application: ApplicationDeclaration | None. The
+    manifest may carry "application": {"step": "<capabilityId>"} only when
+    kind is "appPack"; unknown keys rejected; capability id string checked
+    for form. (CP-10.01; room for future quiescence declarations, CP-9.01.)
+
+1.04. TESTS
+    NEW  tests/backend/orchestration/test_jobCompletion.py: wait timeouts,
+         callbacks before/after terminal, pending cancellation fires
+         callbacks, callback exceptions isolated, thread safety.
+    NEW  tests/backend/runtime/test_clock.py: ManualClock advance/wake;
+         ctx.clock invalid after context invalidation.
+    EDIT tests/backend/packs/test_codeEntryFormats.py (or new
+         test_applicationDeclaration.py): accepted/rejected declarations.
+
+
+2. STEP 3 - EXECUTOR (backend + lifecycle)
+==========================================
+
+2.01. NEW backend/application/executor.py
+    ApplicationExecutor(runtime, stepCapabilityId, clock, tracer):
+    - one worker thread per ApplicationRun ("tertalis-executor-<runId>")
+    - thread-safe submit(capabilityId, payload) -> Job (own AppPack's
+      capabilities only, CP-10.02), wake(), pause(), resume(), snapshot()
+    - boundary loop (CP-2.02): submitted Jobs FIFO, then the step when due;
+      runs each through runtime.runJob(job=...) so OrchestrationUnit,
+      transaction, cancellation and tracing stay the existing ones
+    - step payload {"reason", "now"}; outcome validation (CP-3.02); faults
+      pause the executor and record the reason
+    - waiting: Condition with timeout from the clock (re-check at most 60 s,
+      CP-3.04); ManualClock wakes it in tests
+    - stop(timeout): stop starting work, wait for the running Job, join the
+      worker; reports a still-running Job instead of hanging
+    - tracing (CP-8)
+
+2.02. EDIT backend/application/lifecycle.py
+    After invokeApplicationRun in _resumeCreate and _resumeLoad: start the
+    executor when the defining AppPack declares a step (CP-7.01).
+
+2.03. EDIT backend/application/applicationRuntime.py
+    executor attribute (None without declaration); stop() / close() stop
+    the executor before Pack unload (CP-7.02); public accessor for hosts.
+
+2.04. EDIT backend/runtime/runtimeHost.py
+    closeApplicationRun/stop: executor stopped through runtime.stop/close;
+    host-configurable shutdown wait (default 30 s, CP-10.03).
+
+2.05. TESTS
+    NEW  tests/backend/application/test_executor.py with a fixture AppPack
+         whose step capability is scripted through config:
+         start step; "now" chaining; "at" sleeps then due with ManualClock;
+         "idle" until submit; submitted Jobs before the step; event after each
+         submitted Job; pause/resume at boundaries (running Job finishes);
+         reads while paused; invalid outcome and failed step fault;
+         cancellation of a submitted Job through its handle; stop during a
+         running Job (bounded wait, no repeat on the next run); executor absent
+         without declaration; no busy polling (step count over a long sleep).
+    NEW  tests/backend/application/test_executorLifecycle.py: create/load
+         start the executor after onApplicationRun; save/close ordering
+         unchanged.
+
+
+3. STEP 4 - AI BUDDY ON THE EXECUTOR (Tertalis-AI-Buddy)
+=======================================================
+
+Precondition: adopt the Tertalis SHA that contains steps 2-3 (protocol
+12.13).
+
+3.01. EDIT pack/manifest.json: "application": {"step": "aiBuddy.step@1"}.
+
+3.02. EDIT pack/codeEntry.py
+    a. NEW capability aiBuddy.step@1: one phase per call, chosen from state:
+       deliver pending outbox -> process a generated inference (unless the
+       output breakpoint holds it) -> execute a prepared one (unless the prompt
+       breakpoint holds it) -> prepare. Returns {"next": "now"} after progress,
+       {"next": "idle"} at a breakpoint or when nothing is eligible, or
+       {"next": "at", "at": <next due>} from the schedule.
+    b. Scheduling reports the next due time (nearest notBefore, periodic,
+       expiry, intention lifetime) so idle steps sleep exactly until then.
+    c. Idle steps stop writing lifecycle.lastSeenAt on every check (write it
+       only when something changed or on a coarse interval).
+    d. Debugger state moves into Application state (aibuddy/debug: breakpoint
+       mode, current pause with pauseId); breakpoint actions become capabilities
+       submitted as Jobs (continue, replace prompt/output, breakpoints on/off)
+       keeping today's pause-id conflict rule.
+    e. Outbox delivery stays Application state; the host reads it (or the
+       step marks entries delivered after a host acknowledgement Job).
+    f. Time from ctx.clock (payload "now" still accepted for tests).
+
+3.03. EDIT host/buddyLoop.py -> becomes a thin host adapter (rename decision
+    at materialization): submits input and developer requests to the
+    executor, mirrors executor snapshot and Job completions into the existing
+    DriverEvents (speak, diagnostic, paused, inferenceFinished, ...), keeps
+    interrupt as cancellation of the running inference Job, keeps the managed
+    llama.cpp mitigations. Removes: own worker thread, command queue,
+    0.25 s polling, imitated quiescence (kept as "pause" until G6).
+
+3.04. EDIT host/frontendBridge.py: Invocations map to executor submissions;
+    loop flags come from executor snapshot.
+
+3.05. EDIT run.py: no loop thread; executor started by the platform; quit
+    stops the executor with the managed-server wait rule.
+
+3.06. TESTS: harness drives a ManualClock and waits on Job completion
+    instead of runOnce/settle; checkpoint A-H tests adapted where they used
+    loop internals; new tests for step outcomes, due-time sleeping (no step
+    while sleeping), breakpoint as idle, input waking an idle buddy.
+
+
+4. RISKS
+========
+
+4.01. Moving AI Buddy's cycle into one step capability is the largest change
+of the slice; the plan keeps each phase's existing capability code and only
+moves the sequencing.
+4.02. Job callbacks on the executing thread must not re-enter runtime lanes
+synchronously in ways that deadlock; documented and tested (callbacks may
+submit, not run).
+4.03. Applications without a step declaration must behave exactly as today
+(Experiment Runner, Completion); full suites of those repositories are part of
+verification.

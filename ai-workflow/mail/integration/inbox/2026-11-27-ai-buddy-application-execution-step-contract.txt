@@ -1,0 +1,42 @@
+FROM
+ai-buddy
+
+TO
+integration
+
+SUBJECT
+Design for review: platform application execution (step contract) answering G1 a-d
+
+STATUS
+request
+
+CONTEXT
+G1 (2026-11-27-ai-buddy-long-lived-application-execution.txt, still in this
+inbox) asked for continuous Application execution. The design owner chose a
+direction on 2026-11-27: a step contract, exactly one executor per executing
+Application, breakpoints remaining Application-owned for now, and future
+quiescence eligibility declared in AppPack manifest and/or config.
+
+REQUEST / INFORMATION
+Please review the working checkpoint and plan before any platform branch:
+- design/working/application-execution-checkpoint-01.txt
+- design/working/application-execution-implementation-plan-01.txt
+First slice covers G1 a-d (platform-started execution, waking at the
+Application's next due time without polling, external input as submitted Jobs,
+host pause/resume at Job boundaries) plus Job wait/callbacks and a platform
+clock. G1e (long waits off the lane), G6 quiescence and platform breakpoints
+are recorded as future. Applications without a step declaration keep today's
+caller-driven behaviour.
+
+OWNERSHIP EXPECTATION
+integration / platform for plan steps 2-3; AI Buddy owns step 4 after an
+accepted platform SHA is adopted.
+
+BLOCKING
+No. AI Buddy keeps its application-owned loop meanwhile.
+
+RELEVANT MATERIAL
+ai-workflow/knowledge/ai-buddy-platform-pressure-2026-11-27.txt section 02
+ai-workflow/knowledge/application-suspension-continuation-pressure.txt 09
+design/working/memory-value-system-flow-checkpoint-11.txt sections 66, 108
+Platform ref examined: integration 65e4951
