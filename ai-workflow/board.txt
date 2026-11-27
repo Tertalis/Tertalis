@@ -5,7 +5,8 @@ Owner: Integration for shared coordination projection; individual workstream own
 remain authoritative for their implementation, reviews and current STATE.
 Canonical location/ref: Tertalis/Tertalis integration, ai-workflow/board.txt.
 Last task-by-task workstream reconciliation: 2026-11-10.
-Coordination-location header reconciled: 2026-11-22.
+Coordination-location header reconciled: 2026-11-27.
+Global freeze lifted; repository readiness audit is not a new task assignment.
 CAUTION: the workstream entries below preserve earlier accepted-task evidence,
 not current live sessions or new implementation assignments. During migration,
 read the current coordination protocol, STATE and latest handoff before acting.
@@ -40,8 +41,8 @@ F      FINISHED    Passive processing, scheduled reactions, candidate expiry.
                    the user; no independent verification. Platform tree identical
                    to Tertalis de124f3; no platform change.
                    knowledge/ai-buddy-materialization-checkpoints-a-f.txt.
-P1     WAITING     User: commit AI Buddy source/tests to Tertalis-AI-Buddy
-                   integration (application-exclusive, 12.08); record SHA in STATE.
+P1     FINISHED    Source/tests committed at 9bb8692; STATE reconciled.
+                   Application-local ignore corrected at 2a905b8.
 P2     WAITING     Integration: G8 defect, G7 save growth, G1 continuous execution
                    (requests); G2-G6 findings. knowledge/ai-buddy-platform-pressure-
                    2026-11-27.txt; mail/integration/inbox/2026-11-27-ai-buddy-*.
