@@ -1,10 +1,32 @@
 TERTALIS REPOSITORY AND COORDINATION MIGRATION PLAN
 ==================================================
 Recorded: 2026-11-13
-Status: planned; step-by-step user-controlled execution
-Current source: EnterTheNameHere/Turnix
-Current coordination ref: actant-integration
-Intended organization: Tertalis
+Status: structural migration substantially complete; closure audit pending
+Current repository: Tertalis/Tertalis
+Current coordination ref: integration
+Original source: EnterTheNameHere/Turnix (historical)
+
+CURRENT MIGRATION DECISION - 2026-11-27
+---------------------------------------
+User explicitly lifted the global migration/development freeze. Normal work
+may proceed under the canonical ownership, admission, assignment and
+integration rules; existing ownership claims do not expire automatically.
+AI Buddy development during the migration was intentional and user-directed,
+using the Tertalis organization, not the legacy repository. The original
+migration conversation was unavailable on Android; this continuation
+reconciles records that lagged actual work.
+Repository separation, identity migration and centralized file coordination
+are substantially complete. Formal migration closure remains pending:
+verify repository readiness, accepted platform SHA provenance, and active
+workstream routing; reconcile operational records without rewriting history.
+GitHub-native coordination (M5) is a separate development workstream and
+is not a migration closure prerequisite. File-based coordination remains
+authoritative until an explicitly approved, verified cutover. Semantic
+design reconciliation, PackageManager and CLI are likewise separate work.
+Earlier freeze statements and legacy repository routing in migration
+history are historical and superseded by this decision.
+
+HISTORICAL PLAN AND EXECUTION RECORD (earlier status is not current)
 
 01. PURPOSE AND DECISIONS
 -------------------------
