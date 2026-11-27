@@ -22,6 +22,15 @@ legacy EnterTheNameHere/Turnix actant-integration ref is historical.
 All repositories have their own integration DEVELOPMENT branch; those
 branches do not become separate shared coordination authorities.
 
+MIGRATION CLOSED - 2026-11-27
+-----------------------------
+User confirmed successful tests across all six repositories and authorized
+closure. Final record: ai-workflow/knowledge/tertalis-migration-plan.txt.
+Exact historical baseline evidence: ai-workflow/knowledge/application-platform-provenance-2026-11-27.txt.
+No independent runtime verification or fresh Integrator acceptance claimed.
+Global freeze lifted; no migration-specific assignment remains. GitHub-native
+coordination continues separately; file-backed authority remains unchanged.
+
 CURRENT POSITION
 ----------------
 The file-based inbox/mail, workstream state, assignments, acceptance
@@ -243,9 +252,8 @@ alone is not sufficient evidence of outstanding work or clearance.
 
 The shared development board remains a historical projection last
 substantively reconciled 2026-11-10; it is not a live worker registry
-or comprehensive depiction of this migration. Older canonical
-Application STATE and historical assignments may retain obsolete
-branch names and synchronization instructions. The current protocol
+or comprehensive depiction of this migration. Canonical application STATE routing was reconciled on 2026-11-27;
+historical assignments may retain obsolete branch names and instructions. The current protocol
 overrides obsolete general procedure; reconcile active workstream
 facts individually before any new assignment.
 
@@ -264,9 +272,9 @@ REQUIRES / CONTINUATION
    Application platform-source adoption; verify exact committed trees.
 2. Review the CURRENT canonical inboxes and active assignment state,
    distinguish pending requests from superseded historical reports.
-3. Reconcile individual Application accepted platform SHAs and
-   repository/ref metadata without assuming Git branch HEAD equals
-   an accepted compatibility pairing.
+3. Preserve the recorded Application platform provenance; record future
+   separately authorized adoption outcomes without assuming branch HEAD
+   equals an accepted compatibility pairing.
 4. Keep the board projection current at meaningful transitions.
 5. Design/test secondary GitHub-native coordination incrementally,
    keeping file-backed authority until explicit user-observed cutover.
