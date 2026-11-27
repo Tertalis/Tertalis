@@ -1,4 +1,4 @@
-# file: backend/application/applicationRuntime.py ; version: 26
+# file: backend/application/applicationRuntime.py ; version: 27
 from __future__ import annotations
 
 from contextlib import suppress
@@ -10,15 +10,15 @@ from backend.application.runtime import Application, ApplicationRun, Application
 from backend.capabilities.runtime import CapabilityRegistry
 from backend.context.codeEntryContext import CodeEntryContext, CodeEntryIdentity
 from backend.io.managedIo import ManagedIo, ManagedIoTransaction
-from backend.llm.executionSessions import helperCancellation, lifetimeBoundary, jobExecutionBoundary
+from backend.llm.executionSessions import helperCancellation, lifetimeBoundary, jobExecutionBoundary, noteJobMutation
 from backend.llm.providerComposition import (invocationBoundary, requireNoPendingComposition,
     requireReady, requireInvocationEntry, hasLifecycleWork, finishBrokerEffects)
 from backend.runtime.executionResources import ExecutionResourceService
 from backend.llm.streamingRuntime import LlmProcessingPipeline, LlmProviderRegistry
 from backend.observation import ObservationService
 from backend.orchestration.cancellation import CancellationSignal, ExecutionCancelled
-from backend.orchestration.runtime import (Job, JobAuthority, JobCleanupFailed, JobState, OrchestrationUnit,
-    OrchestrationUnitOutcome)
+from backend.orchestration.runtime import (InvocationCleanupFailed, Job, JobAuthority, JobCleanupEvidence,
+    JobCleanupFailed, JobState, OrchestrationUnit, OrchestrationUnitOutcome, cleanupEvidenceScope)
 from backend.packs.runtime import PackLoader, PackResolver
 from backend.process.configuration import processToolDefinitionsFromConfig
 from backend.process.context import ProcessFacade
@@ -27,13 +27,31 @@ from backend.process.capture import processJobScope
 from backend.registration import RegistrationScope
 from backend.save import ApplicationStore, LoadedApplicationSave, SaveBundle
 from backend.tracing import Tracer, TraceSinkDestination
+from backend.values.committed import CommittedValueTransaction
 
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from backend.values.committed import CommittedValueLayer, CommittedValueTransaction
+    from backend.values.committed import CommittedValueLayer
 
-__all__ = ["ApplicationRuntime"]
+__all__ = ["ApplicationRunUnsafe", "ApplicationRuntime"]
+
+
+class ApplicationRunUnsafe(RuntimeError):
+    """
+    Refuses new authority-bearing work after a Job ended with unresolved or
+    partially accepted authority (CP-8.02). There is no automatic recovery:
+    the ApplicationRun can be inspected through the runtime's evidence and
+    terminated, nothing else. job is the Job whose disposition made the run
+    unsafe.
+    """
+
+    def __init__(self, job: Job) -> None:
+        self.job = job
+        super().__init__(
+            f"ApplicationRun is unsafe: Job {job.jobId} ended with authority {job.authority}; "
+            "no further Jobs or top-level capability invocations are admitted.",
+        )
 
 
 class ApplicationRuntime:
@@ -140,6 +158,8 @@ class ApplicationRuntime:
         self._ownsTracer = tracer is None
         self._tracerClosed = False
         self._closed = False
+        self._unsafeJob: Job | None = None
+        self._lastJob: Job | None = None
         self.tracer = tracer or Tracer(origin="tertalis.runtime", destinations=(TraceSinkDestination(),))
         self.llmPipeline = LlmProcessingPipeline(
             providers=self.llmProviders,
@@ -459,6 +479,21 @@ class ApplicationRuntime:
         """Exclude invocation through leaked references before trusted composition."""
         requireReady(self)
 
+    @property
+    def unsafeAuthority(self) -> Job | None:
+        """The terminal Job whose unresolved/partial authority made this run unsafe, if any."""
+        return self._unsafeJob
+
+    @property
+    def lastJob(self) -> Job | None:
+        """The most recently admitted Job, terminal once runJob has exited in any way."""
+        return self._lastJob
+
+    def requireAuthoritySafe(self) -> None:
+        """Refuses authority-bearing work after unresolved or partial Job authority."""
+        if self._unsafeJob is not None:
+            raise ApplicationRunUnsafe(self._unsafeJob)
+
     def requireActive(self) -> None:
         """Requires this runtime to own an active ApplicationRun."""
         if not self.applicationRun.active:
@@ -558,6 +593,10 @@ class ApplicationRuntime:
         with self._lane:
             requireInvocationEntry(self)
             self.requireOperational()
+            if not isinstance(memoryView, CommittedValueTransaction):
+                # Not inside a Job's transaction: the context would reach
+                # authoritative state directly.
+                self.requireAuthoritySafe()
             registration = self.capabilities.resolve(capabilityId)
             try:
                 identity, packRoot = self._codeEntries[registration.ownerId]
@@ -628,11 +667,14 @@ class ApplicationRuntime:
         with self._lane:
             requireInvocationEntry(self)
             self.requireActive()
+            self.requireAuthoritySafe()
             activeJob = Job.new() if job is None else job
             if not isinstance(activeJob, Job):
                 raise TypeError("job must be a Job or None.")
             if activeJob.state is not JobState.CANCELLED:
                 activeJob.start()
+            self._lastJob = activeJob
+            noteJobMutation(activeJob)
             if activeJob.state is JobState.CANCELLED:
                 self.trace(
                     "job-cancelled",
@@ -657,53 +699,63 @@ class ApplicationRuntime:
             }
             # From here the Job is admitted (Running): every exit records a
             # terminal Job with an authority disposition (CP-8.01, CP-8.02).
+            evidence = JobCleanupEvidence()
             try:
-                unit = OrchestrationUnit.mutation(
-                    applicationRunId=self.applicationRun.applicationRunId,
-                    transactionBase=self.applicationRun.application.committedState,
-                )
-                ioTransaction = self.io.openTransaction()
-                orchestrationAttributes = {
-                    "jobId": activeJob.jobId,
-                    "orchestrationUnitId": unit.orchestrationUnitId,
-                    "applicationId": self.applicationRun.application.applicationId,
-                    "applicationRunId": unit.applicationRunId,
-                    "transactionId": unit.transactionId,
-                    "ioTransactionId": ioTransaction.ioTransactionId,
-                    "capabilityId": capabilityId,
-                    "workKind": "job-capability",
-                }
-                self.trace("OrchestrationUnitCreated", attributes=orchestrationAttributes)
-                self.trace("OrchestrationUnitTransactionOpened", attributes=orchestrationAttributes)
-                self.trace("managed-io-transaction-opened", attributes=orchestrationAttributes)
-                unit.start()
-                self.trace("OrchestrationUnitStarted", attributes=orchestrationAttributes)
-                self.trace("job-started", attributes=orchestrationAttributes)
-                activeJob.cancellationSignal.raiseIfRequested()
-                with processJobScope(activeJob):
-                    result = self.invokeCapability(
-                        capabilityId,
-                        payload,
-                        memoryView=unit.memoryView,
-                        ioView=ioTransaction,
-                        cancellationSignal=activeJob.cancellationSignal,
+                with cleanupEvidenceScope(evidence):
+                    unit = OrchestrationUnit.mutation(
+                        applicationRunId=self.applicationRun.applicationRunId,
+                        transactionBase=self.applicationRun.application.committedState,
                     )
-                activeJob.cancellationSignal.raiseIfRequested()
-                unit.commitMutation()
-                activeJob.authoritativeStateAccepted = True
-                self.trace("OrchestrationUnitTransactionCommitted", attributes=orchestrationAttributes)
-                try:
-                    ioTransaction.commit()
-                except Exception as err:
-                    self.trace(
-                        "managed-io-transaction-failed",
-                        message=str(err),
-                        attributes=orchestrationAttributes,
-                        level="error",
-                    )
-                    raise
-                self.trace("managed-io-transaction-committed", attributes=orchestrationAttributes)
-                unit.finish(OrchestrationUnitOutcome.COMPLETED)
+                    ioTransaction = self.io.openTransaction()
+                    orchestrationAttributes = {
+                        "jobId": activeJob.jobId,
+                        "orchestrationUnitId": unit.orchestrationUnitId,
+                        "applicationId": self.applicationRun.application.applicationId,
+                        "applicationRunId": unit.applicationRunId,
+                        "transactionId": unit.transactionId,
+                        "ioTransactionId": ioTransaction.ioTransactionId,
+                        "capabilityId": capabilityId,
+                        "workKind": "job-capability",
+                    }
+                    self.trace("OrchestrationUnitCreated", attributes=orchestrationAttributes)
+                    self.trace("OrchestrationUnitTransactionOpened", attributes=orchestrationAttributes)
+                    self.trace("managed-io-transaction-opened", attributes=orchestrationAttributes)
+                    unit.start()
+                    self.trace("OrchestrationUnitStarted", attributes=orchestrationAttributes)
+                    self.trace("job-started", attributes=orchestrationAttributes)
+                    activeJob.cancellationSignal.raiseIfRequested()
+                    with processJobScope(activeJob):
+                        result = self.invokeCapability(
+                            capabilityId,
+                            payload,
+                            memoryView=unit.memoryView,
+                            ioView=ioTransaction,
+                            cancellationSignal=activeJob.cancellationSignal,
+                        )
+                    if evidence.errors:
+                        # A nested invocation's cleanup failed and the capability
+                        # caught it: the staging must not be accepted.
+                        raise InvocationCleanupFailed(
+                            "Invocation cleanup failed inside the Job; its staging is not accepted.",
+                        )
+                    activeJob.cancellationSignal.raiseIfRequested()
+                    # A nested Job may have made the run unsafe meanwhile.
+                    self.requireAuthoritySafe()
+                    unit.commitMutation()
+                    activeJob.authoritativeStateAccepted = True
+                    self.trace("OrchestrationUnitTransactionCommitted", attributes=orchestrationAttributes)
+                    try:
+                        ioTransaction.commit()
+                    except Exception as err:
+                        self.trace(
+                            "managed-io-transaction-failed",
+                            message=str(err),
+                            attributes=orchestrationAttributes,
+                            level="error",
+                        )
+                        raise
+                    self.trace("managed-io-transaction-committed", attributes=orchestrationAttributes)
+                    unit.finish(OrchestrationUnitOutcome.COMPLETED)
             except BaseException as err:  # noqa: BLE001 - capability failure may originate from arbitrary Pack code.
                 cancelled = isinstance(err, ExecutionCancelled)
                 self._terminateJob(
@@ -712,6 +764,7 @@ class ApplicationRuntime:
                     ioTransaction,
                     primary=err,
                     cancelled=cancelled,
+                    invocationEvidence=evidence.errors,
                     attributes=orchestrationAttributes,
                 )
                 if not isinstance(err, Exception):
@@ -734,6 +787,7 @@ class ApplicationRuntime:
         *,
         primary: BaseException,
         cancelled: bool,
+        invocationEvidence: tuple[BaseException, ...],
         attributes: dict[str, object],
     ) -> None:
         """
@@ -742,9 +796,11 @@ class ApplicationRuntime:
         Each cleanup step is attempted regardless of earlier failures; every
         failure, including invocation cleanup errors recorded on the primary,
         becomes cleanup evidence on the Job. The Job is terminal before any
-        trace is emitted, so tracing cannot leave it Running.
+        trace is emitted, so tracing cannot leave it Running. invocationEvidence is the
+        Job's execution-owned invocation cleanup evidence; a Job left with
+        unresolved or partial authority makes the run unsafe.
         """
-        cleanupErrors: list[BaseException] = list(getattr(primary, "invocationCleanupErrors", ()))
+        cleanupErrors: list[BaseException] = list(invocationEvidence)
         mutationWasResolved = unit is None or unit.mutationResolved
         ioAborted = False
         if ioTransaction is not None and ioTransaction.state == "active":
@@ -777,6 +833,8 @@ class ApplicationRuntime:
             job.cancel(authority=authority, cleanupErrors=evidence)
         else:
             job.fail(primary, authority=authority, cleanupErrors=evidence)
+        if authority is not JobAuthority.RESOLVED and self._unsafeJob is None:
+            self._unsafeJob = job
 
         if ioAborted:
             self.trace("managed-io-transaction-aborted", attributes=attributes)

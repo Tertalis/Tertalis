@@ -1,0 +1,126 @@
+FROM
+AI Buddy implementer
+
+TO
+Integration
+
+SUBJECT
+G8 / plan step 2: corrections for analyzer findings G8-R1 .. G8-R4
+
+STATUS
+completion
+
+CONTEXT
+Answers 2026-11-27-application-execution-g8-analyzer-review.txt (reviewed
+a4b1b87, recorded at 1c62e20). Focused correction on top of 1c62e20; the
+original nested-cleanup fix is kept. The earlier completion report stays as
+history.
+
+REQUEST / INFORMATION
+Disposition per finding:
+
+G8-R1 (cleanup-only failure reported resolved) - FIXED.
+  Cleanup evidence is now execution-owned, not read from the primary.
+  NEW in backend/orchestration/runtime.py (v10):
+    JobCleanupEvidence: a per-Job collector.
+    cleanupEvidenceScope: a context-variable scope.
+    recordCleanupFailures.
+    InvocationCleanupFailed.
+  runJob opens one JobCleanupEvidence scope around everything after
+  admission. CodeEntryContext.invalidate (v33) reports every cleanup error
+  to the current Job's collector first. It does this on every path: with a
+  primary exception, on the ExceptionGroup raise, and on the critical-only
+  raise.
+  _terminateJob classifies only from that evidence plus its own IO/unit
+  cleanup errors. A capability's own ExceptionGroup therefore stays an
+  ordinary failure with resolved authority.
+
+G8-R2 (nested evidence overwritten/lost) - FIXED.
+  Every nested invocation in the Job reports to the same collector, so
+  nothing is overwritten.
+  If the capability returns normally but the collector is non-empty (it
+  caught a nested failure whose cleanup failed), the staging is not
+  committed. The Job fails with InvocationCleanupFailed and authority
+  unresolved, and JobCleanupFailed is raised.
+  The primary's invocationCleanupErrors attribute is kept for compatibility
+  but now accumulates instead of being overwritten.
+
+G8-R3 (unsafe later admission) - FIXED, run-scoped and independent of any
+executor.
+  A Job ending unresolved or partially-accepted records itself as
+  ApplicationRuntime.unsafeAuthority. After that, ApplicationRunUnsafe
+  (NEW, backend/application/applicationRuntime.py v27) refuses:
+    - runJob, before any Job transition, unit, transaction or handler (a
+      supplied Pending Job stays Pending);
+    - every invokeCapability whose memory view is not a Job transaction,
+      i.e. anything that could reach authoritative state directly;
+    - an outer Job's commit, when a nested Job made the run unsafe while
+      it ran.
+  There is no reset and no automatic recovery. close/stop are unchanged,
+  and existing quarantine is untouched.
+  Inspection that remains: unsafeAuthority (the culprit terminal Job, with
+  its error, cleanupErrors and authority), lastJob, and host-side reads of
+  committed state. Read capabilities invoked at top level are refused,
+  consistent with CP-8.03.
+
+G8-R4 (boundary / early failures) - FIXED.
+  runJob notes the admitted Job on its LLM mutation scope (new
+  noteJobMutation in backend/llm/executionSessions.py v10).
+  jobExecutionBoundary now resolves exceptional exits from that Job's real
+  authoritativeStateAccepted. This covers interrupts and JobCleanupFailed,
+  and replaces the earlier JobCleanupFailed-only special case.
+  NEW ApplicationRuntime.lastJob gives the caller terminal evidence for
+  internally created Jobs when an interrupt propagates.
+
+Tests: tests/backend/application/test_openTransactionFailure.py v2, 21
+tests (7 original + 14 new):
+  R1: cleanup-only failure is unresolved and raises the typed error;
+      several cleanup-only errors are all kept; a critical cleanup interrupt
+      propagates with the ordinary errors kept; a capability's own
+      ExceptionGroup is resolved.
+  R2: nested inner and outer distinct cleanup failures are both kept; a
+      caught inner failure cannot succeed.
+  R3: after partial acceptance (IO commit restored) and after unresolved,
+      runJob (with a supplied Pending Job and without one) and top-level
+      invokeCapability are refused, with no unit creation, no handler call
+      and nothing committed.
+  R4: IO open failure before unit start; unit start failure; independent IO
+      abort and nested abort errors both kept; interrupt before commit (LLM
+      scope False, run stays safe); interrupt from IO commit after
+      acceptance (scope True, partially-accepted, run unsafe); ordinary
+      success/failure scope compatibility.
+  Mutation checks: removing the evidence report fails 8 tests, removing
+  the admission guard fails both R3 tests, and restoring the old boundary
+  fails the interrupt-after-acceptance test.
+
+OWNERSHIP EXPECTATION
+Tertalis platform (Integration acceptance).
+
+BLOCKING
+Yes: step 2 acceptance and steps 3-6.
+
+RELEVANT MATERIAL
+Branch g8-open-transaction-failure on 1c62e20. Changed:
+  backend/application/applicationRuntime.py v27
+  backend/context/codeEntryContext.py v33
+  backend/llm/executionSessions.py v10
+  backend/orchestration/runtime.py v10
+  tests/backend/application/test_openTransactionFailure.py v2
+
+REPORT BACK
+Acceptance with exact SHA after the user's Python 3.15 run, or findings.
+
+NOTES
+Development evidence only (Python 3.13 with a local shim), not
+target-runtime acceptance:
+  - Full tests/ run: no new failures against the 1c62e20 baseline (34
+    pre-existing shim failures and 6 llmDrivers collection errors on both);
+    1454 passed.
+  - AI Buddy 33d5a2a: 86 tests pass on this platform.
+The user runs Python 3.15 for each delivery.
+Open for the design owner (not changed here):
+  - saveApplication and captureSaveBundle are still allowed while unsafe.
+    After partial acceptance they would persist memory that disagrees with
+    the files.
+  - Whether host-side reads of committed state should also be gated.
+The start/cancel race stays with step 3 tryStart.

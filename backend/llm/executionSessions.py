@@ -1,4 +1,4 @@
-# file: backend/llm/executionSessions.py ; version: 9
+# file: backend/llm/executionSessions.py ; version: 10
 """Trusted LLM composition over ER-01, with no provider-specific realization.
 
 Binding/owner creation and adapter evidence are backend hooks, never Pack grants.
@@ -26,7 +26,6 @@ from backend.llm.errors import (
 )
 from backend.llm.llmTypes import LlmExecutionProfile
 from backend.orchestration.cancellation import ExecutionCancelled
-from backend.orchestration.runtime import JobCleanupFailed
 from backend.runtime.executionResources import (
     EffectStatus, ProviderEffect, Quiescence, ResourceConflict, ResourceState, ResourceCleanupError,
 )
@@ -308,6 +307,7 @@ class LlmMutationScope:
         self.root = self if parent is None else parent.root
         self.receipts = []
         self.active = True
+        self.job = None
 
     def touch(self, handle):
         """Marks mutation only after admission; provisional handles exclude other roots."""
@@ -428,11 +428,12 @@ def jobExecutionBoundary(method):
         token = _mutation.set(scope)
         try:
             result = method(*args, **kwargs)
-        except JobCleanupFailed as err:
-            scope.resolve(err.job.authoritativeStateAccepted)
-            raise
         except BaseException:
-            scope.resolve(False)
+            # The admitted Job (noted by runJob) is terminal by now and holds
+            # the real acceptance evidence, also for interrupts and typed
+            # cleanup failures raised after authoritative memory acceptance.
+            job = scope.job
+            scope.resolve(job is not None and job.terminal and job.authoritativeStateAccepted)
             raise
         else:
             scope.resolve(result.authoritativeStateAccepted)
@@ -440,6 +441,13 @@ def jobExecutionBoundary(method):
         finally:
             _mutation.reset(token)
     return execute
+
+
+def noteJobMutation(job):
+    """Binds the admitted Job to the current Job mutation scope (see jobExecutionBoundary)."""
+    scope = _mutation.get()
+    if scope is not None and scope.parent is None:
+        scope.job = job
 
 
 def hostClosePreflight(method):

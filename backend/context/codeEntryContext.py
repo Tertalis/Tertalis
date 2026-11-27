@@ -1,4 +1,4 @@
-# file: backend/context/codeEntryContext.py ; version: 32
+# file: backend/context/codeEntryContext.py ; version: 33
 from __future__ import annotations
 
 from copy import deepcopy
@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING
 
 from backend.llm.llmTypes import LlmQuery
 from backend.observation import ObservationFacade, ObservationOwner, ObservationSession
+from backend.orchestration.runtime import recordCleanupFailures
 from backend.process.context import ProcessFacade
 from backend.process.runtime import ProcessRunner, ProcessToolRegistry
 from backend.process.capture import ProcessInvocation
@@ -515,10 +516,13 @@ class CodeEntryContext:
             except BaseException as error:
                 errors.append(error)
         if errors:
+            # Execution-owned evidence first: it survives a caught exception,
+            # nested invocations and the raise paths below (CP-8.01).
+            recordCleanupFailures(errors)
             if primary is not None:
                 try:
                     primary.invocationCleanupFailed = True
-                    primary.invocationCleanupErrors = tuple(errors)
+                    primary.invocationCleanupErrors = tuple(getattr(primary, "invocationCleanupErrors", ())) + tuple(errors)
                 except BaseException:
                     pass
             else:

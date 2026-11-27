@@ -1,6 +1,9 @@
-# file: backend/orchestration/runtime.py ; version: 9
+# file: backend/orchestration/runtime.py ; version: 10
 from __future__ import annotations
 
+from collections.abc import Iterable, Iterator
+from contextlib import contextmanager
+from contextvars import ContextVar
 from dataclasses import dataclass, field
 from enum import StrEnum
 from threading import RLock
@@ -9,7 +12,18 @@ from backend.core.runtimeIds import newRuntimeId
 from backend.orchestration.cancellation import CancellationSignal
 from backend.values.committed import CommittedValueLayer, CommittedValueTransaction
 
-__all__ = ["Job", "JobAuthority", "JobCleanupFailed", "JobState", "OrchestrationUnit", "OrchestrationUnitOutcome"]
+__all__ = [
+    "InvocationCleanupFailed",
+    "Job",
+    "JobAuthority",
+    "JobCleanupEvidence",
+    "JobCleanupFailed",
+    "JobState",
+    "OrchestrationUnit",
+    "OrchestrationUnitOutcome",
+    "cleanupEvidenceScope",
+    "recordCleanupFailures",
+]
 
 
 class JobState(StrEnum):
@@ -55,6 +69,70 @@ _JOB_TERMINAL_STATES = {
     JobState.TIMED_OUT,
     JobState.SUPERSEDED,
 }
+
+
+class JobCleanupEvidence:
+    """
+    Execution-owned collector of cleanup failures for one admitted Job.
+
+    Every invocation context invalidated while the Job's scope is current
+    reports its cleanup failures here, whether or not an exception is
+    propagating, whether or not the capability later catches it, and however
+    deeply invocations nest. Nothing is overwritten; order is report order.
+    """
+
+    __slots__ = ("_errors", "_lane")
+
+    def __init__(self) -> None:
+        self._errors: list[BaseException] = []
+        self._lane = RLock()
+
+    def record(self, errors: Iterable[BaseException]) -> None:
+        """Appends cleanup failures."""
+        errors = tuple(errors)
+        if not all(isinstance(error, BaseException) for error in errors):
+            raise TypeError("Cleanup evidence must be BaseException instances.")
+        with self._lane:
+            self._errors.extend(errors)
+
+    @property
+    def errors(self) -> tuple[BaseException, ...]:
+        """Returns every recorded failure."""
+        with self._lane:
+            return tuple(self._errors)
+
+
+_cleanupEvidence: ContextVar[JobCleanupEvidence | None] = ContextVar("tertalis.job.cleanupEvidence", default=None)
+
+
+@contextmanager
+def cleanupEvidenceScope(evidence: JobCleanupEvidence) -> Iterator[JobCleanupEvidence]:
+    """Makes evidence the current Job's collector for the enclosed execution."""
+    if not isinstance(evidence, JobCleanupEvidence):
+        raise TypeError("evidence must be a JobCleanupEvidence.")
+    token = _cleanupEvidence.set(evidence)
+    try:
+        yield evidence
+    finally:
+        _cleanupEvidence.reset(token)
+
+
+def recordCleanupFailures(errors: Iterable[BaseException]) -> bool:
+    """Reports cleanup failures to the current Job; returns whether one was current."""
+    evidence = _cleanupEvidence.get()
+    if evidence is None:
+        return False
+    evidence.record(errors)
+    return True
+
+
+class InvocationCleanupFailed(RuntimeError):
+    """
+    Primary Job error when the capability returned normally but invocation
+    cleanup failed somewhere inside the Job (for example in a nested
+    invocation whose exception the capability caught). The Job's staging is
+    not accepted.
+    """
 
 
 class JobCleanupFailed(RuntimeError):
