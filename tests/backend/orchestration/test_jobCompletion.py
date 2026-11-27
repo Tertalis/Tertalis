@@ -1,4 +1,4 @@
-# file: tests/backend/orchestration/test_jobCompletion.py ; version: 1
+# file: tests/backend/orchestration/test_jobCompletion.py ; version: 2
 """
 Job completion building blocks (application-execution checkpoint CP-10;
 plan step 3, 2.01): wait, done callbacks with terminal publication vs
@@ -452,3 +452,247 @@ def test_refused_admission_releases_ownership(harness):
     assert job.state is JobState.PENDING
     assert job.beginExecution() is True
     job.endExecution()
+
+
+# ---------------------------------------------------------------------------
+# Review corrections S3-R1 .. S3-R3
+# ---------------------------------------------------------------------------
+
+import sys  # noqa: E402
+import types  # noqa: E402
+
+from backend.packs.runtime import ManualActivationPlan  # noqa: E402
+
+
+def _nestedGate(runtime, register, *, outerVia):
+    """
+    Outer execution runs a nested runJob, then blocks on a gate while another
+    thread registers on the nested (terminal) Job.
+    """
+    register("test.nested.inner@1", lambda ctx, payload: "inner")
+    innerJob = Job.new()
+    innerReturned = threading.Event()
+    go = threading.Event()
+
+    def outer(ctx, _payload):
+        assert runtime.runJob("test.nested.inner@1", job=innerJob) is innerJob
+        innerReturned.set()
+        assert go.wait(TIMEOUT)
+        return "outer"
+
+    register("test.nested.outer@1", outer)
+    calls = []
+
+    def callback(job):
+        calls.append((threading.get_ident(), _probeLocks(runtime, job)))
+
+    def registrant():
+        assert innerReturned.wait(TIMEOUT)
+        assert innerJob.wait(0) is True and innerJob.state is JobState.SUCCEEDED
+        innerJob.addDoneCallback(callback)
+        assert calls == [], "nested Job dispatched while its outer execution still runs"
+        go.set()
+
+    results = []
+
+    def run():
+        if outerVia == "runJob":
+            results.append((threading.get_ident(), runtime.runJob("test.nested.outer@1").state))
+        else:
+            results.append((threading.get_ident(), runtime.invokeCapability("test.nested.outer@1")))
+
+    runner = _thread(run)
+    other = _thread(registrant)
+    _join(other, runner)
+    return results[0], calls
+
+
+@pytest.mark.parametrize("outerVia", ["runJob", "invokeCapability"])
+def test_r1_nested_job_is_not_eligible_until_outer_boundary_exits(harness, outerVia):
+    runtime, register = harness
+    (runnerIdent, outcome), calls = _nestedGate(runtime, register, outerVia=outerVia)
+    assert outcome in (JobState.SUCCEEDED, "outer")
+    assert calls == [(runnerIdent, [True, True])]
+
+
+def test_r1_standalone_publication_and_wait_unchanged():
+    job = Job.new()
+    with jobDispatchBoundary():
+        job.tryStart()
+        job.succeed()
+        assert job.wait(0) is True
+        seen = []
+        _join(_thread(lambda: job.addDoneCallback(seen.append)))
+        assert seen == [job]  # an unowned Job is eligible at terminal publication
+
+
+def test_r2_critical_callback_does_not_drop_later_callbacks():
+    job = Job.new()
+    calls = []
+    interrupt = KeyboardInterrupt()
+
+    def critical(_job):
+        calls.append("critical")
+        raise interrupt
+
+    job.addDoneCallback(critical)
+    job.addDoneCallback(lambda j: calls.append("ordinary"))
+    job.tryStart()
+    with pytest.raises(KeyboardInterrupt) as caught:
+        job.succeed("value")
+    assert caught.value is interrupt
+    assert calls == ["critical", "ordinary"]
+    assert job.state is JobState.SUCCEEDED and job.result == "value"
+
+
+def test_r2_critical_callback_inside_boundary_keeps_other_pending_entries():
+    first, second = Job.new(), Job.new()
+    calls = []
+
+    def critical(_job):
+        raise SystemExit(3)
+
+    first.addDoneCallback(critical)
+    second.addDoneCallback(lambda j: calls.append(j))
+    with pytest.raises(SystemExit):
+        with jobDispatchBoundary():
+            first.requestCancellation()
+            second.requestCancellation()
+    assert calls == [second]
+
+
+def test_r2_reporter_failure_cannot_defeat_dispatch():
+    for reporterError in (RuntimeError("reporter"), KeyboardInterrupt()):
+        job = Job.new()
+        calls = []
+
+        def reporter(_job, _callback, _error, reporterError=reporterError):
+            raise reporterError
+
+        assert job.beginExecution(failureReporter=reporter)
+        job.addDoneCallback(lambda _j: (_ for _ in ()).throw(ValueError("callback")))
+        job.addDoneCallback(lambda j: calls.append("after"))
+        job.tryStart()
+        job.succeed()
+        if isinstance(reporterError, Exception):
+            job.endExecution()
+        else:
+            with pytest.raises(KeyboardInterrupt):
+                job.endExecution()
+        assert calls == ["after"]
+
+
+def test_r2_exceptional_run_job_exit_keeps_primary_and_dispatches_all(harness):
+    runtime, register = harness
+    primary = KeyboardInterrupt()
+
+    def interrupted(ctx, _payload):
+        raise primary
+
+    register("test.r2.primary@1", interrupted)
+    job = Job.new()
+    calls = []
+
+    def critical(_job):
+        calls.append("critical")
+        raise SystemExit(9)
+
+    job.addDoneCallback(critical)
+    job.addDoneCallback(lambda j: calls.append(("ordinary", _probeLocks(runtime, j))))
+    with pytest.raises(KeyboardInterrupt) as caught:
+        runtime.runJob("test.r2.primary@1", job=job)
+    assert caught.value is primary
+    assert calls == ["critical", ("ordinary", [True, True])]
+    assert job.state is JobState.FAILED and job.error is primary
+    assert any("SystemExit" in note for note in getattr(primary, "__notes__", ()))
+
+
+def test_r2_critical_callback_after_normal_run_job_propagates_after_all(harness):
+    runtime, register = harness
+    register("test.r2.ok@1", lambda ctx, payload: "ok")
+    job = Job.new()
+    calls = []
+    job.addDoneCallback(lambda j: (_ for _ in ()).throw(KeyboardInterrupt()))
+    job.addDoneCallback(lambda j: calls.append(j.state))
+    with pytest.raises(KeyboardInterrupt):
+        runtime.runJob("test.r2.ok@1", job=job)
+    assert calls == [JobState.SUCCEEDED] and job.result == "ok"
+
+
+def test_r3_direct_invocation_defers_registration_and_cancellation(harness):
+    runtime, register = harness
+    finished = Job.new()
+    finished.requestCancellation()
+    pending = Job.new()
+    events = []
+    pending.addDoneCallback(lambda j: events.append(("pending", _probeLocks(runtime, j))))
+
+    def handler(ctx, _payload):
+        finished.addDoneCallback(lambda j: events.append(("finished", _probeLocks(runtime, j))))
+        assert pending.requestCancellation() is True
+        events.append(("handler-end", None))
+        return "direct"
+
+    register("test.r3.direct@1", handler)
+    assert runtime.invokeCapability("test.r3.direct@1") == "direct"
+    assert events[0] == ("handler-end", None)
+    assert sorted(events[1:]) == [("finished", [True, True]), ("pending", [True, True])]
+
+
+def test_r3_direct_invocation_defers_nested_job_dispatch(harness):
+    runtime, register = harness
+    register("test.r3.inner@1", lambda ctx, payload: "inner")
+    inner = Job.new()
+    events = []
+    inner.addDoneCallback(lambda j: events.append(("inner", _probeLocks(runtime, j))))
+
+    def outer(ctx, _payload):
+        runtime.runJob("test.r3.inner@1", job=inner)
+        events.append(("outer-end", None))
+        return "outer"
+
+    register("test.r3.outer@1", outer)
+    assert runtime.invokeCapability("test.r3.outer@1") == "outer"
+    assert events == [("outer-end", None), ("inner", [True, True])]
+
+
+@pytest.fixture
+def probeModule():
+    module = types.ModuleType("tertalisDispatchProbe")
+    module.events = []
+    module.job = Job.new()
+    module.job.requestCancellation()
+    sys.modules[module.__name__] = module
+    try:
+        yield module
+    finally:
+        sys.modules.pop(module.__name__, None)
+
+
+def test_r3_pack_lifecycle_hooks_defer_dispatch(tmp_path, probeModule):
+    """onLoad (activate) and onUnload (close) register while the runtime holds its lanes."""
+    directory = tmp_path / "test_lifecycle"
+    directory.mkdir()
+    import json
+    (directory / "manifest.json").write_text(json.dumps({
+        "packId": "test.lifecycle", "kind": "modPack", "version": "0.0.0",
+        "codeEntries": [{"id": "entry", "source": "codeEntry.py"}],
+    }), encoding="utf-8", newline="\n")
+    (directory / "codeEntry.py").write_text(
+        "import tertalisDispatchProbe as probe\n"
+        "def onLoad(ctx):\n"
+        "    probe.job.addDoneCallback(probe.onLoadCallback)\n"
+        "    probe.events.append('onLoad-end')\n"
+        "def onUnload(ctx, state):\n"
+        "    probe.job.addDoneCallback(probe.onUnloadCallback)\n"
+        "    probe.events.append('onUnload-end')\n",
+        encoding="utf-8", newline="\n",
+    )
+    runtime = ApplicationRuntime(appPackId="test.app", packResolver=PackResolver(roots=(tmp_path,)))
+    probeModule.onLoadCallback = lambda j: probeModule.events.append(("onLoad-callback", _probeLocks(runtime, j)))
+    probeModule.onUnloadCallback = lambda j: probeModule.events.append(("onUnload-callback", _probeLocks(runtime, j)))
+    runtime.start()
+    runtime.packLoader.activate(ManualActivationPlan(packIds=("test.lifecycle",)))
+    assert probeModule.events == ["onLoad-end", ("onLoad-callback", [True, True])]
+    runtime.close()
+    assert probeModule.events[2:] == ["onUnload-end", ("onUnload-callback", [True, True])]

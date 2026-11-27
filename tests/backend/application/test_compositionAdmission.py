@@ -1,4 +1,4 @@
-# file: tests/backend/application/test_compositionAdmission.py ; version: 1
+# file: tests/backend/application/test_compositionAdmission.py ; version: 2
 """R1 actual-use gate races: issued runtime tickets, real lifecycle, fake provider IO."""
 from concurrent.futures import ThreadPoolExecutor
 from contextvars import copy_context
@@ -306,7 +306,7 @@ def test_copied_invocation_scope_cannot_authorize_an_actual_entry_after_expiry(r
     capability(runtime, "capture@1", capture)
     capability(runtime, "phase@1", handler)
     runtime.invokeCapability("capture@1")
-    actual = type(runtime).invokeCapability.__wrapped__.__wrapped__
+    actual = type(runtime).invokeCapability.__wrapped__.__wrapped__.__wrapped__
     with pytest.raises(LlmExecutionOwnershipError, match="expired"):
         held["scope"].run(actual, runtime, "phase@1")
     assert not observed

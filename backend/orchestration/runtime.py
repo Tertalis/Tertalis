@@ -2,10 +2,12 @@
 from __future__ import annotations
 
 import logging
+import sys
 from collections.abc import Callable, Iterable, Iterator
 from contextlib import contextmanager
 from contextvars import ContextVar
 from dataclasses import dataclass, field
+from functools import wraps
 from enum import StrEnum
 from threading import Condition, RLock, local
 
@@ -24,6 +26,7 @@ __all__ = [
     "OrchestrationUnitOutcome",
     "JobDoneCallback",
     "cleanupEvidenceScope",
+    "dispatchBoundary",
     "jobDispatchBoundary",
     "recordCleanupFailures",
 ]
@@ -50,10 +53,13 @@ def jobDispatchBoundary() -> Iterator[None]:
     """
     Marks an execution boundary on this thread.
 
-    Callbacks that become due while any boundary is open on the thread are
-    queued and run when the outermost boundary exits (normally or by
-    exception), after the code inside has left its lanes and locks. Outside
-    every boundary callbacks run immediately on the calling thread.
+    While any boundary is open on the thread, nothing is dispatched there:
+    callbacks that become due are queued, and an owned Job whose execution
+    ends inside the boundary does not even become dispatch-eligible yet (so
+    other threads queue their registrations too). Both happen when the
+    outermost boundary exits, normally or by exception, after the code inside
+    has left its lanes and locks. Outside every boundary callbacks run
+    immediately on the calling thread.
     """
     depth = _dispatchDepth()
     if depth == 0:
@@ -61,38 +67,109 @@ def jobDispatchBoundary() -> Iterator[None]:
     _dispatchState.depth = depth + 1
     try:
         yield
-    finally:
+    except BaseException as primary:
         _dispatchState.depth = depth
         if depth == 0:
-            pending, _dispatchState.pending = _dispatchState.pending, []
-            _runCallbacks(pending)
+            _flush(primary)
+        raise
+    else:
+        _dispatchState.depth = depth
+        if depth == 0:
+            _flush(None)
+
+
+def dispatchBoundary(method):
+    """Decorator form of jobDispatchBoundary for public execution entry points."""
+    @wraps(method)
+    def execute(*args, **kwargs):
+        with jobDispatchBoundary():
+            return method(*args, **kwargs)
+    return execute
+
+
+def _flush(primary: BaseException | None) -> None:
+    """Publishes deferred eligibility and runs every queued callback exactly once."""
+    pending, _dispatchState.pending = _dispatchState.pending, []
+    critical: list[BaseException] = []
+    for job, callbacks in pending:
+        if callbacks is None:
+            callbacks = job._becomeEligible()
+        critical.extend(_invokeCallbacks(job, callbacks))
+    _finishCritical(critical, primary)
+
+
+def _deferEligibility(job: Job) -> None:
+    _dispatchState.pending.append((job, None))
 
 
 def _scheduleCallbacks(job: Job, callbacks: list[JobDoneCallback]) -> None:
     """Runs callbacks now, or defers them to the outermost open boundary."""
     if not callbacks:
         return
-    entries = [(job, callback) for callback in callbacks]
     if _dispatchDepth() > 0:
-        _dispatchState.pending.extend(entries)
+        _dispatchState.pending.append((job, list(callbacks)))
     else:
-        _runCallbacks(entries)
+        _finishCritical(_invokeCallbacks(job, callbacks), sys.exception())
 
 
-def _runCallbacks(entries: list[tuple[Job, JobDoneCallback]]) -> None:
-    """Runs each callback once; a failing callback never affects the Job or the others."""
-    for job, callback in entries:
+def _invokeCallbacks(job: Job, callbacks: list[JobDoneCallback]) -> list[BaseException]:
+    """
+    Runs each callback once. Any failure, including a BaseException raised by
+    the callback, is a notification failure: it is reported and never stops
+    the remaining callbacks or changes the Job. Critical (non-Exception)
+    failures are returned for _finishCritical.
+    """
+    critical: list[BaseException] = []
+    for callback in callbacks:
         try:
             callback(job)
-        except Exception as error:  # noqa: BLE001 - callbacks are arbitrary notification code.
-            reporter = job._failureReporter
+        except BaseException as error:  # noqa: BLE001 - callbacks are arbitrary notification code.
+            if not isinstance(error, Exception):
+                critical.append(error)
+            critical.extend(_report(job, callback, error))
+    return critical
+
+
+def _report(job: Job, callback: JobDoneCallback, error: BaseException) -> list[BaseException]:
+    """Reports one callback failure; a failing reporter cannot defeat dispatch."""
+    reporter = job._failureReporter
+    try:
+        if reporter is None:
+            _log.error("Job %s done callback %r failed.", job.jobId, callback, exc_info=error)
+        else:
+            reporter(job, callback, error)
+    except BaseException as reportError:  # noqa: BLE001 - reporting must not stop dispatch.
+        try:
+            _log.error("Job %s done callback failure could not be reported.", job.jobId, exc_info=reportError)
+        except BaseException:  # noqa: BLE001
+            pass
+        if not isinstance(reportError, Exception):
+            return [reportError]
+    return []
+
+
+def _finishCritical(critical: list[BaseException], primary: BaseException | None) -> None:
+    """
+    After every callback has run: a critical callback failure propagates only
+    when no primary exception is already propagating; otherwise the primary
+    is kept and carries a note.
+    """
+    if not critical:
+        return
+    if primary is not None:
+        for error in critical:
             try:
-                if reporter is None:
-                    _log.error("Job %s done callback %r failed.", job.jobId, callback, exc_info=error)
-                else:
-                    reporter(job, callback, error)
-            except Exception:  # noqa: BLE001 - reporting must not stop dispatch.
-                _log.exception("Job %s done callback failure could not be reported.", job.jobId)
+                primary.add_note(f"Job done callback raised {type(error).__name__}; reported, primary kept.")
+            except BaseException:  # noqa: BLE001
+                pass
+        return
+    first = critical[0]
+    for error in critical[1:]:
+        try:
+            first.add_note(f"Another Job done callback also raised {type(error).__name__}.")
+        except BaseException:  # noqa: BLE001
+            pass
+    raise first
 
 
 class JobState(StrEnum):
@@ -375,15 +452,30 @@ class Job:
             return True
 
     def endExecution(self) -> None:
-        """Ends execution ownership; a terminal Job becomes dispatch-eligible now."""
+        """
+        Ends execution ownership. A terminal Job becomes dispatch-eligible now,
+        or at the outermost exit of the execution boundary open on this thread.
+        """
         due: list[JobDoneCallback] = []
         with self._lane:
             if not self._owned:
                 raise RuntimeError("Job is not owned by an execution.")
             self._owned = False
-            if self.state in _JOB_TERMINAL_STATES:
-                due = self._takeEligibleLocked()
+            if self.state not in _JOB_TERMINAL_STATES:
+                return
+            if _dispatchDepth() > 0:
+                # Still inside an execution boundary on this thread: becoming
+                # eligible waits for its outermost exit (CP-10.02).
+                _deferEligibility(self)
+                return
+            due = self._takeEligibleLocked()
         _scheduleCallbacks(self, due)
+
+    def _becomeEligible(self) -> list[JobDoneCallback]:
+        with self._lane:
+            if self._eligible:
+                return []
+            return self._takeEligibleLocked()
 
     def _publishTerminalLocked(self) -> list[JobDoneCallback]:
         """Wakes waiters; an unowned Job also becomes eligible. Caller holds the lock."""

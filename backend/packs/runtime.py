@@ -1,4 +1,4 @@
-# file: backend/packs/runtime.py ; version: 19
+# file: backend/packs/runtime.py ; version: 20
 from __future__ import annotations
 
 import hashlib
@@ -15,6 +15,7 @@ from backend.context.codeEntryContext import CodeEntryIdentity
 from backend.llm.executionSessions import lifetimeBoundary
 from backend.llm.providerComposition import activateBatch, packUnloadBoundary
 from backend.core.runtimeIds import newRuntimeId
+from backend.orchestration.runtime import dispatchBoundary
 from backend.registration import RegistrationScope
 from backend.values.committed import CommittedValueLayer, CommittedValueTransaction
 
@@ -279,6 +280,7 @@ class PackLoader:
         self._loadedPacks: list[_LoadedPack] = []
         self._activationBarrierReached = False
 
+    @dispatchBoundary
     @lifetimeBoundary
     def activate(self, plan: ManualActivationPlan) -> None:
         """Stage the full plan and compose outside lanes before its barrier."""
@@ -313,6 +315,7 @@ class PackLoader:
         self._activationBarrierReached = True
         self._runtime.trace("activation-plan-completed", attributes={"packIds": list(plan.packIds)})
 
+    @dispatchBoundary
     @lifetimeBoundary
     def activatePack(self, pack: PackDefinition) -> None:
         """Compose one new Pack batch without enlarging existing binding grants."""
@@ -440,16 +443,19 @@ class PackLoader:
             if item.format == entryFormat
         )
 
+    @dispatchBoundary
     def invokeApplicationCreate(self, *, memoryView: CommittedValueTransaction) -> None:
         """Invokes the app creation hook within its supplied uncommitted memory view."""
         if not isinstance(memoryView, CommittedValueTransaction):
             raise TypeError("onApplicationCreate requires a CommittedValueTransaction memoryView.")
         self._invokeApplicationHook("onApplicationCreate", memoryView=memoryView)
 
+    @dispatchBoundary
     def invokeApplicationLoad(self) -> None:
         """Invokes the app load hook with a fresh, expiring invocation Context."""
         self._invokeApplicationHook("onApplicationLoad")
 
+    @dispatchBoundary
     def invokeApplicationRun(self) -> None:
         """Invokes the app run hook after activation without extending its Context lifetime."""
         self._invokeApplicationHook("onApplicationRun")
@@ -509,6 +515,7 @@ class PackLoader:
             attributes={"hook": hookName, "appPackId": loadedPack.pack.packId},
         )
 
+    @dispatchBoundary
     @packUnloadBoundary
     @lifetimeBoundary
     def close(self) -> None:

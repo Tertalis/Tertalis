@@ -1,0 +1,133 @@
+FROM
+AI Buddy implementer
+
+TO
+Integration
+
+SUBJECT
+Application execution step 3: corrections for S3-R1 .. S3-R3
+
+STATUS
+completion
+
+CONTEXT
+This answers 2026-11-27-application-execution-step3-analyzer-review.txt
+(review of f4d670d, recorded at c2be43f). It is a focused correction on
+c2be43f, on branch step3-building-blocks. The Clock and manifest are
+unchanged.
+
+REQUEST / INFORMATION
+S3-R1 (nested Job eligibility published early) - FIXED.
+  - The thing deferred is now eligibility itself, not only the scheduling of
+    callbacks that were already collected.
+  - When Job.endExecution() runs while a jobDispatchBoundary is open on the
+    thread, the Job stays not-eligible and is queued as a deferred
+    eligibility entry. The runJob wrapper's own boundary is always open at
+    that point.
+  - Until the outermost boundary exits, a registration from any thread is
+    queued. At the outermost exit (_flush), the Job becomes eligible and
+    every queued callback runs once.
+  - An unowned Job keeps standalone semantics: it is eligible at terminal
+    publication, and wait() is unchanged. Only dispatch on the current
+    thread is deferred while that thread is inside a boundary.
+
+S3-R2 (callback BaseException loses registrations or replaces the primary) -
+FIXED.
+  - _invokeCallbacks treats any BaseException raised by a callback as a
+    notification failure. It is reported, the remaining callbacks still run,
+    and the Job is never changed.
+  - A reporter failure, including a BaseException, is logged and cannot
+    stop dispatch.
+  - _flush handles every pending entry before any propagation.
+  - After all callbacks have run, critical (non-Exception) failures are
+    handled as follows:
+    - If a primary exception is propagating through the boundary, the
+      primary is kept and receives a note per critical failure.
+    - Otherwise the first critical failure propagates, with notes for any
+      others.
+  - Real capability interrupts are untouched: they are the primary.
+
+S3-R3 (direct invokeCapability and lifecycle paths dispatch under locks) -
+FIXED.
+  - NEW decorator dispatchBoundary (backend/orchestration/runtime.py v12).
+    It is applied outermost, above every lane and decorated boundary, on
+    every public entry that runs Pack code:
+    - ApplicationRuntime (v30): invokeCapability, stop, close;
+    - PackLoader (backend/packs/runtime.py v20): activate, activatePack,
+      close, invokeApplicationCreate, invokeApplicationLoad,
+      invokeApplicationRun;
+    - ApplicationLifecycle (backend/application/lifecycle.py v9): create,
+      load, resume, abort;
+    - RuntimeHost (backend/runtime/runtimeHost.py v16): createApplication,
+      loadApplication, closeApplicationRun, stop.
+    Inner entries nest, so dispatch happens at the outermost one. For
+    example, onUnload under ApplicationRuntime.close dispatches after
+    close leaves the runtime lane, not at the inner PackLoader.close.
+  - tests/backend/application/test_compositionAdmission.py (v2) unwraps one
+    more level, because invokeCapability gained the outer wrapper.
+
+Non-blocking notes:
+  - Job.start() intentionally keeps its preliminary "only Pending" check.
+    It then delegates to tryStart(), so a cancel in between gives Cancelled,
+    as before.
+  - The ManualClock advance-under-condition caution is recorded for step 4.
+
+Tests: tests/backend/orchestration/test_jobCompletion.py v2, 32 tests
+(21 + 11 new):
+  R1:
+    - A nested Job is not eligible until its outer boundary exits. Another
+      thread registers while the outer capability is gated after the nested
+      runJob returned. Covered with the outer as runJob and as direct
+      invokeCapability. The callback runs exactly once on the runner thread
+      with the runtime lane and the Job lock acquirable from a third thread.
+    - Standalone publication inside a boundary still makes the Job eligible
+      for another thread.
+  R2:
+    - A critical callback followed by an ordinary one (both run, then the
+      interrupt propagates, Job unchanged).
+    - A critical callback inside a boundary does not drop another Job's
+      pending entry.
+    - Reporter failure, both Exception and KeyboardInterrupt.
+    - Exceptional runJob exit: the primary interrupt is kept with a note,
+      and all callbacks run after lock release.
+    - A critical callback after a normal runJob propagates after all
+      callbacks.
+  R3:
+    - Direct invokeCapability: registration on an eligible Job and
+      cancellation of a Pending Job are deferred to the invocation exit, with
+      locks released.
+    - A nested Job inside a direct invocation is deferred.
+    - Pack onLoad (PackLoader.activate) and onUnload (ApplicationRuntime.
+      close) registrations dispatch after the call returns, with the runtime
+      lane free.
+  Mutation checks:
+    - no deferred eligibility: both R1 tests fail;
+    - Exception-only isolation: 4 R2 tests fail;
+    - no invokeCapability boundary: 3 fail;
+    - no activate boundary: the lifecycle test fails;
+    - no ApplicationRuntime.close boundary: the lifecycle test fails
+      (PackLoader.close alone would flush under the runtime lane).
+
+OWNERSHIP EXPECTATION
+Tertalis platform (Integration acceptance).
+
+BLOCKING
+Yes: step 3 acceptance, then step 4.
+
+RELEVANT MATERIAL
+Changed:
+  backend/orchestration/runtime.py v12
+  backend/application/applicationRuntime.py v30
+  backend/application/lifecycle.py v9
+  backend/packs/runtime.py v20
+  backend/runtime/runtimeHost.py v16
+  tests/backend/application/test_compositionAdmission.py v2
+  tests/backend/orchestration/test_jobCompletion.py v2
+
+REPORT BACK
+Corrected SHA acceptance after the user's local Python 3.15 run, or
+findings.
+
+NOTES
+Development evidence (Python 3.13 shim): full tests/ shows no new failures
+against the baseline; 1520 passed. AI Buddy 33d5a2a: 86 tests pass.

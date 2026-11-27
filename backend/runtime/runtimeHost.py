@@ -1,4 +1,4 @@
-# file: backend/runtime/runtimeHost.py ; version: 15
+# file: backend/runtime/runtimeHost.py ; version: 16
 from __future__ import annotations
 
 from contextlib import suppress
@@ -13,6 +13,7 @@ from backend.llm.executionSessions import LlmExecutionBindings, lifetimeBoundary
 from backend.llm.providerComposition import finishResourceEffects, finishBrokerEffects
 from backend.observation import ObservationService
 from backend.packs.runtime import ManualActivationPlan, PackResolver
+from backend.orchestration.runtime import dispatchBoundary
 from backend.runtime.clock import Clock, SystemClock
 from backend.runtime.executionResources import ExecutionResourceService
 from backend.runtime.sharedServices import (
@@ -115,6 +116,7 @@ class RuntimeHost:
         if self.state is not RuntimeHostState.ACTIVE or self._stopping:
             raise RuntimeError("RuntimeHost is not active.")
 
+    @dispatchBoundary
     @lifetimeBoundary
     def createApplication(
         self,
@@ -127,6 +129,7 @@ class RuntimeHost:
         """Creates, initializes, starts, and registers one new ApplicationRuntime."""
         return self._initialize(appPackId=appPackId, plan=plan, config=config, tracer=tracer)
 
+    @dispatchBoundary
     @lifetimeBoundary
     def loadApplication(
         self,
@@ -204,6 +207,7 @@ class RuntimeHost:
                     f"ApplicationRun is not active in this RuntimeHost: {applicationRunId}.",
                 ) from err
 
+    @dispatchBoundary
     @lifetimeBoundary
     @hostClosePreflight
     def closeApplicationRun(self, applicationRunId: str) -> None:
@@ -233,6 +237,7 @@ class RuntimeHost:
                     errors,
                 )
 
+    @dispatchBoundary
     @lifetimeBoundary
     @hostClosePreflight
     def stop(self) -> None:

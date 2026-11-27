@@ -1,8 +1,9 @@
-# file: backend/application/lifecycle.py ; version: 8
+# file: backend/application/lifecycle.py ; version: 9
 from __future__ import annotations
 
 from backend.packs.runtime import ManualActivationPlan
 from backend.application.applicationRuntime import ApplicationRuntime
+from backend.orchestration.runtime import dispatchBoundary
 from backend.save import SaveBundle
 from backend.llm.providerComposition import ActivationAttempt, _lifecycle
 from threading import get_ident
@@ -20,6 +21,7 @@ class ApplicationLifecycle:
     """
 
     @classmethod
+    @dispatchBoundary
     def create(
         cls,
         *,
@@ -59,6 +61,7 @@ class ApplicationLifecycle:
         return accepted
 
     @classmethod
+    @dispatchBoundary
     def load(
         cls,
         *,
@@ -96,6 +99,7 @@ class ApplicationLifecycle:
         return attempt
 
     @classmethod
+    @dispatchBoundary
     def resume(cls, attempt):
         """Only a live issued continuation can enter serialized application hooks."""
         with attempt._gate:
@@ -114,6 +118,7 @@ class ApplicationLifecycle:
             _lifecycle.reset(token)
 
     @classmethod
+    @dispatchBoundary
     def abort(cls, runtime, primary):
         """Unwind partial initialization outside host lanes and preserve failures."""
         errors = []

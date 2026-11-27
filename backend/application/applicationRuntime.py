@@ -1,4 +1,4 @@
-# file: backend/application/applicationRuntime.py ; version: 29
+# file: backend/application/applicationRuntime.py ; version: 30
 from __future__ import annotations
 
 from contextlib import suppress
@@ -19,7 +19,7 @@ from backend.observation import ObservationService
 from backend.orchestration.cancellation import CancellationSignal, ExecutionCancelled
 from backend.orchestration.runtime import (InvocationCleanupFailed, Job, JobAuthority, JobCleanupEvidence,
     JobCleanupFailed, JobState, OrchestrationUnit, OrchestrationUnitOutcome, cleanupEvidenceScope,
-    jobDispatchBoundary)
+    dispatchBoundary, jobDispatchBoundary)
 from backend.packs.runtime import PackLoader, PackResolver
 from backend.process.configuration import processToolDefinitionsFromConfig
 from backend.process.context import ProcessFacade
@@ -372,6 +372,7 @@ class ApplicationRuntime:
                 },
             )
 
+    @dispatchBoundary
     @lifetimeBoundary
     def stop(self, *, _deferLlmClose=False) -> None:
         """Stops an active run after attempting Pack cleanup."""
@@ -416,6 +417,7 @@ class ApplicationRuntime:
                     errors,
                 )
 
+    @dispatchBoundary
     @lifetimeBoundary
     def close(self, *, _deferLlmClose=False) -> None:
         """Closes Pack/runtime resources and the internally owned tracer once."""
@@ -591,6 +593,7 @@ class ApplicationRuntime:
             owner.revoke()
         self.llmExecutions.revokeRegistration(self.llmProviders, codeEntryInstanceId)
 
+    @dispatchBoundary
     @invocationBoundary
     @lifetimeBoundary
     def invokeCapability(
