@@ -6,7 +6,8 @@ Current Tertalis working location:
 
 Status:
     NON-AUTHORITATIVE WORKING PLAN. Steps 2-4 materialized 2026-11-27 on
-    branch browser-frontend (see section 7); step 5 pending AI Buddy source.
+    branch browser-frontend (see section 7), accepted at 3424d434; step 5
+    materialized in Tertalis-AI-Buddy (see section 8), pending verification.
 
 Design source:
     design/working/browser-frontend-checkpoint-01.txt (sections cited as CP-n)
@@ -368,3 +369,28 @@ after two Windows fixes:
     affected Python Ruff checks and native tool verification passed.
     Exact integration refs and acceptance are recorded separately under
     ai-workflow/knowledge/browser-frontend-integration-2026-11-27.txt.
+
+
+8. STEP 5 MATERIALIZATION RECORD (AI BUDDY, 2026-11-27)
+======================================================
+
+Platform: Tertalis integration 82772a2 adopted into Tertalis-AI-Buddy as a
+complete projection (only the accepted browser-frontend files change).
+Application changes (Tertalis-AI-Buddy, pending commit):
+    host/driver.py renamed host/buddyLoop.py (BuddyDriver -> BuddyLoop);
+    pause ids and StaleBreakpoint; stale pauses cleared instead of executed;
+    new events received, pauseChanged, breakpointCleared.
+    host/frontendBridge.py (new), pack/ui/ (main + 12 library entries),
+    manifest declares them, run.py UI flags, README and implementation design
+    section 17.
+Deviations from section 4:
+    a. 4.03a not done: the 0.25 s idle poll stays. AI Buddy's prepare result
+       has no next-due time, so blocking until the next due item needs
+       Application work or the G1 platform facility.
+    b. The bridge runs on its own thread and calls the loop's existing
+       thread-safe requests (Futures); the loop does not drain the channel.
+       This keeps the loop channel-agnostic and the terminal path unchanged.
+    c. Extra track aibuddy.loop (flags published immediately) because status
+       reads wait for the loop's next boundary (long during an inference).
+    d. Pack version left at 0.1.0 (semver comes later).
+Verification: see ai-workflow/state/ai-buddy.txt objective 3.
