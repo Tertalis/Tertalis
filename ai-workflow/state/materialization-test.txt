@@ -1,3 +1,25 @@
+TERTALIS MATERIALIZATION-TEST - CURRENT MIGRATION STATE
+==================================================
+Updated: 2026-11-27
+Working repository: Tertalis/Tertalis-Materialization-Test
+Development branch: integration
+Audited Application HEAD: 1c6e3073ecb951b36a92b76eaccdcb5817df4c8d
+Canonical coordination: Tertalis/Tertalis integration.
+Global freeze lifted 2026-11-27; normal admission and ownership apply.
+Application and tests present. Local JSON ignore scoped to application; 18 legacy coordination files retired, preserved at feb060a. Current compatibility not tested.
+Shared platform files match the audited Tertalis source projection at
+3f85c867c45e1ccc07b31722572071ef3f4909aa, excluding repository-specific
+onboarding and centralized documentation/coordination. This is source
+observation only, not an accepted platform SHA or compatibility test.
+Retain earlier accepted evidence; verify exact migrated baseline provenance
+before recording a new accepted pairing. No automatic platform adoption.
+Earlier repository/branch routing, freeze and synchronization instructions
+below are historical; current canonical protocol governs. Earlier capability
+observations are tied to their recorded baselines, not fresh verification.
+
+HISTORICAL WORKSTREAM RECORD
+----------------------------
+
 ACTANT INTEGRATION STATE - MATERIALIZATION / MODEL TEST APPLICATION
 
 Integration availability / migration dependency (2026-11-03)
