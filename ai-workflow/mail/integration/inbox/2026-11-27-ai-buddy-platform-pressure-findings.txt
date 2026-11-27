@@ -1,0 +1,52 @@
+FROM
+ai-buddy
+
+TO
+integration
+
+SUBJECT
+AI Buddy platform review findings G2-G6: recorded for planning, no action requested
+
+STATUS
+finding
+
+CONTEXT
+The AI Buddy materialization recorded eight candidate platform gaps. Each was
+re-examined at Tertalis/Tertalis integration de124f3 before reporting. G1, G7 and
+G8 are sent as separate requests. This message reports the rest so Integration
+knows what was examined and why nothing further is asked.
+
+REQUEST / INFORMATION
+G2 WITHDRAWN - invokeCapability/runJob holding the ApplicationRun lane for a whole
+   Job is deliberate (knowledge/execution-resource-er02-review.txt 30-34). Held in
+   reserve only: a lane-free read-only inspection path over a committed snapshot,
+   if practice shows inspection during long Jobs matters.
+G3 WITHDRAWN - cancelled Jobs discarding staged state matches the accepted
+   pattern (PM-02 caller-held evidence; Experiment Runner EX-03 application-owned
+   recorder, no shared API change needed). AI Buddy uses the same pattern.
+   Optional: a developer-guidance line that evidence which must survive
+   cancellation is captured outside the Job and committed afterwards.
+G4 LOW-PRIORITY PRESSURE - capabilities resolve by identifier with no caller
+   identity or authority, unlike LLM execution grants and process tools. Not
+   exploitable in AI Buddy today. Triggers: native model tool calling over
+   capabilities, third-party Packs in the same Application, trustworthy
+   attribution of interventions.
+G5 OBSERVATION - no address enumeration/query in the Value System; AI Buddy keeps
+   its own counters and indexes. Revisit if a second Application needs
+   collections or prefix queries, per the Memory Value System working checkpoint's
+   own "recurring value" criterion.
+G6 MERGED - application quiescence is already tracked by
+   knowledge/application-suspension-continuation-pressure.txt; AI Buddy's
+   consumer input is appended there as section 09.
+
+OWNERSHIP EXPECTATION
+integration, for planning only.
+
+BLOCKING
+No.
+
+RELEVANT MATERIAL
+ai-workflow/knowledge/ai-buddy-platform-pressure-2026-11-27.txt sections 03-07
+
+REPORT BACK
+None required. Archive when read.

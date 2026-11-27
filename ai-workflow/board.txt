@@ -23,6 +23,31 @@ A step can be READY while a parallel dependency is BLOCKED. "WAITING" identifies
 who must take the next action. Do not turn these labels into a platform-wide state
 machine. Update this board on meaningful task transitions, not every code commit.
 
+AI BUDDY - CURRENT BOARD
+------------------------
+Added 2026-11-27 by the ai-buddy workstream (user-directed); Integration may
+reconcile. Authoritative: state/ai-buddy.txt and the knowledge records below.
+
+INITIAL MATERIALIZATION (Stages 1-6) - FINISHED, USER-VERIFIED (2026-11-27)
+Task   State       Summary / evidence
+A      FINISHED    Existence/interaction/inspection; prompt and response breakpoints.
+B      FINISHED    Memory, provenance, recall continuation.
+C      FINISHED    Things to do, eligibility/selection, directives, amendment, time.
+D      FINISHED    Minesweeper, lifecycle (resting/inactive), imitated quiescence.
+E      FINISHED    Ordered scoped rules, protection, loss investigation.
+F      FINISHED    Passive processing, scheduled reactions, candidate expiry.
+                   Python 3.15 tests (63) and live Stage 1-6 sequences reported by
+                   the user; no independent verification. Platform tree identical
+                   to Tertalis de124f3; no platform change.
+                   knowledge/ai-buddy-materialization-checkpoints-a-f.txt.
+P1     WAITING     User: commit AI Buddy source/tests to Tertalis-AI-Buddy
+                   integration (application-exclusive, 12.08); record SHA in STATE.
+P2     WAITING     Integration: G8 defect, G7 save growth, G1 continuous execution
+                   (requests); G2-G6 findings. knowledge/ai-buddy-platform-pressure-
+                   2026-11-27.txt; mail/integration/inbox/2026-11-27-ai-buddy-*.
+NEXT   User selects the next AI Buddy backlog item (stale breakpoint, /stop,
+       save/storage reduction, managed llama.cpp) or Stage 7 experimentation.
+
 EXPERIMENT RUNNER - CURRENT BOARD
 ---------------------------------
 APPLICATION CONTENT CLEANUP - TRACKED REMOVAL DELIVERED (2026-11-10)

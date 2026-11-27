@@ -475,11 +475,15 @@ Inbox: ai-workflow/mail/completion/inbox/
 Archive: ai-workflow/mail/completion/archive/
 
 Workstream: ai-buddy
-Purpose: AI Buddy application and independent Actant design/implementation pressure
-         from a long-lived, concurrently running, event-driven AI application.
+Purpose: AI Buddy application and independent Tertalis design/implementation
+         pressure from a long-lived, concurrently running, event-driven AI application.
 Owner: AI Buddy thread.
-Working branch: actant-ai-buddy
-Parent integration line: actant-integration
+Working repository/branch: Tertalis/Tertalis-AI-Buddy integration
+Coordination: Tertalis/Tertalis integration (historical branch actant-ai-buddy)
+Status 2026-11-27: initial materialization (Stages 1-6, checkpoints A-F) user-
+  verified; source commit to the AI Buddy repository pending; G1/G7/G8 requests
+  and G2-G6 findings sent to Integration.
+Implementation record: ai-workflow/knowledge/ai-buddy-materialization-checkpoints-a-f.txt
 State: ai-workflow/state/ai-buddy.txt
 Handoff: ai-workflow/handoff/ai-buddy-thread.txt
 Inbox: ai-workflow/mail/ai-buddy/inbox/
@@ -665,7 +669,22 @@ Durable integration knowledge
 - ai-workflow/knowledge/application-suspension-continuation-pressure.txt
   Pre-implementation semantic direction for resource-light suspension of the same
   ApplicationRun, durable non-authoritative continuation, Job behavior during
-  suspension, quiescing/grace periods, and wake/reconstruction.
+  suspension, quiescing/grace periods, and wake/reconstruction. Section 09: AI Buddy
+  consumer input (suspend/wake notification, Job categories, wake triggers).
+
+- ai-workflow/knowledge/ai-buddy-platform-pressure-2026-11-27.txt
+  AI Buddy review of eight candidate platform gaps at de124f3 with evidence:
+  G1 continuous execution, G7 save growth and G8 open-transaction defect kept and
+  requested; G4 low priority; G2/G3 withdrawn; G5 observation; G6 merged above.
+
+- ai-workflow/knowledge/ai-buddy-g8-open-transaction-traceback.txt
+  User-observed Python 3.15 pytest output for G8 (runJob raising from
+  unit.finish instead of returning a FAILED Job), verbatim with header.
+
+- ai-workflow/knowledge/ai-buddy-materialization-checkpoints-a-f.txt
+  AI Buddy initial materialization record: user-directed scope, application-
+  exclusive source location, platform baseline comparison, delivered behaviour,
+  user-reported verification and known application defects.
 
 - ai-workflow/knowledge/llm-performance-observation-and-optimization.txt
   Accepted optional inference monitoring/optimization requirements and passive

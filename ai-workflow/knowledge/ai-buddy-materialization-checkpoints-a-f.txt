@@ -1,0 +1,143 @@
+TERTALIS - AI BUDDY INITIAL MATERIALIZATION, CHECKPOINTS A-F
+============================================================
+
+STATUS / AUTHORITY
+------------------
+Application implementation record of the ai-buddy workstream, recorded
+2026-11-27. The implementation is APPLICATION-EXCLUSIVE (protocol 12.08/12.10):
+its source and tests belong to Tertalis/Tertalis-AI-Buddy, never to
+Tertalis/Tertalis. No Integration review or acceptance has taken place.
+Verification below is USER-REPORTED unless stated otherwise.
+
+AUTHORIZATION AND SCOPE
+-----------------------
+User-directed in the AI Buddy design/implementation conversation, starting
+2026-11-24, while the global migration/development freeze remained recorded in
+state/coordination.txt. The user explicitly directed this workstream's
+materialization; no other workstream was resumed or changed.
+
+Scope: requirements Stages 1-6 of the AI Buddy initial materialization
+requirements, agreed as ONE materialization scope implemented through ordered
+integration checkpoints A-F. Stage 7 (behavioural experimentation) uses the
+running system and is outside the scope.
+
+Inputs (application-owned design drafts, to be kept in the AI Buddy repository):
+  ai-buddy-conceptual-design.txt
+  ai-buddy-initial-materialization-requirements.txt
+  ai-buddy-handoff.txt
+The requirements' Stages 1-6 were agreed in the conversation as one scope
+with checkpoints A-F (a revised draft was produced but may not be the copy the
+user keeps; Draft 0.1 still lists separate stages). Python target: 3.15 only.
+Produced design record (application-owned):
+  first-party/applications/aiBuddy/ai-buddy-implementation-design.txt
+
+SOURCE AND LOCATION
+-------------------
+Application-exclusive files, created in the user's local combined checkout:
+  first-party/applications/aiBuddy/
+    pack/manifest.json, pack/codeEntry.py, pack/personality.json,
+    pack/rules.json, host/driver.py, run.py, run.bat, README.md, .gitignore,
+    ai-buddy-implementation-design.txt
+  tests/first_party/applications/aiBuddy/
+    conftest.py, test_checkpointA.py .. test_checkpointF.py (63 tests)
+Destination: Tertalis/Tertalis-AI-Buddy, branch integration, at those paths.
+As of this record the AI Buddy integration head 80b3f23 contains no AI Buddy
+source; the commit is pending (user). Record its SHA in state/ai-buddy.txt.
+
+PLATFORM BASELINE
+-----------------
+No platform file was changed. Developed and tested against the user's local
+Tertalis/Tertalis integration checkout corresponding to
+de124f3be8f1b6c025ea528e5470b0d14efdde42 (user statement; the archive used
+matched it). On 2026-11-27 the platform projection of Tertalis-AI-Buddy
+integration 80b3f236f07c6220dcdaf3fd77ade944fdef0bdf was compared with
+de124f3: backend/, first-party/, tests/, scripts/, tools/, vendor/ and root
+pyproject.toml, requirements*.txt and setup scripts are byte-identical. The
+results therefore apply to the AI Buddy repository's current platform tree.
+This comparison is not an Integrator acceptance (protocol 12.13/12.17).
+
+PLATFORM FACILITIES USED
+------------------------
+RuntimeHost create/load with ManualActivationPlan(llmDrivers.llamaCpp, aiBuddy);
+AppPack lifecycle hooks; every mutating capability run as a Job (runJob) with
+cross-thread Job cancellation; committed Value System state under aibuddy/ and
+SaveBundle persistence; ctx.llm.run (text/plain, streamObserver, timing); the
+first-party llama.cpp Pack UNMODIFIED in external mode (baseUrl).
+Not adopted: managed llama.cpp (ER-03 trusted host composition and grants;
+ER-04C notice). Adoption is identified application work (state/ai-buddy.txt).
+
+DELIVERED BEHAVIOUR
+-------------------
+A  Existence, interaction, inspection: authoritative personality, empty personal
+   memory, fresh situation-first prompts (no replayed chat), provisional tag
+   output contract (only closed <say> is speech), prepare/execute/process Jobs,
+   breakpoint mode pausing before inference and after the response with
+   prompt/response replacement recorded as interventions, raw output and
+   timing records, continuous operation, save/restore incl. re-offered
+   prepared/generated inferences.
+B  Memory: almost-literal experiences, deliberate memories with provenance,
+   recent window plus lexical automatic selection with explicit absence,
+   <recall> continuation with found/no-further/no-match outcomes, bounded
+   continuation, "how do you know" provenance, developer memory injection.
+C  Things to do: activities, dependencies, notBefore, expiry, suspend/resume/
+   abandon/amend, recorded eligibility and tiered selection, State/Important
+   State/Queue/Important/Interrupt/Choice directives, input amending open
+   input work, finish/cancel interruption policies with kept partial output,
+   active-time pressure excluding debugger pauses, rechecks, deterministic
+   periodic checks.
+D  Independent activity and execution state: deterministic Minesweeper with
+   state independent of inference, optional activity yielding to input,
+   related input acting on the game, active/resting/explicitly inactive
+   lifecycle, driver-imitated quiescence, restart and activation notices,
+   periodic escalation of a waiting game.
+E  Rules: ordered scoped rules shown by number, AI rule establishment/
+   revision/reorder/retire on editable rules only, disregard per step,
+   protected initial and developer rules (rejections recorded), loss
+   investigation with the revealed final board.
+F  Passive processing: memory reflection with cursor and scheduled reactions,
+   salient candidates with limit and expiry, may run while inactive or
+   resting, never speaks/wakes/consumes notices; reactions as the only
+   passive-to-active channel.
+Full design and rationale: ai-buddy-implementation-design.txt.
+
+VERIFICATION (USER-REPORTED, PYTHON 3.15, USER'S WINDOWS ENVIRONMENT)
+---------------------------------------------------------------------
+Each checkpoint: runtime-contract tests with a scripted stub provider, then a
+live demonstration against the user's llama-server (model/config not recorded).
+A  first run 7 passed / 1 failed: driver interrupt could cancel bookkeeping Jobs
+   (could lose user input). Fixed; corrected tests passed; live Stage 1
+   sequence reported working.
+B  tests and live Stage 2 sequence reported successful.
+C  first run 31 passed / 2 failed: platform defect G8 surfaced (see pressure
+   record) plus driver using wall clock for developer requests; both fixed
+   (AI Buddy guard; driver clock). User reported success ("as far as I can
+   guess").
+D  first run 44 passed / 1 failed: test defect (3x3 board won by the opening
+   reveal). Fixed; tests and live Stage 4 reported successful except the
+   open stale-breakpoint defect below.
+E  first run failed broadly: pack rules.json had a JSON list root, but
+   ManagedIo.readJson requires an object. Fixed; reported successful.
+F  tests and live Stage 6 sequence reported successful.
+Afterwards tests moved from first-party/applications/aiBuddy/tests/ to
+tests/first_party/applications/aiBuddy/ (path change only); no post-move run
+was reported.
+Independent verification: none. The implementing conversation's sandbox had
+only Python 3.12 without pytest; its shimmed checks are not evidence.
+
+KNOWN DEFECTS AND LIMITS (APPLICATION)
+--------------------------------------
+- Stale breakpoint: a pause is driver memory; if the paused inference is
+  superseded (e.g. /suspend, /abandon, /amend) /continue fails with "Only a
+  prepared inference can be executed." and repeats; launcher restart recovers.
+  Required: verify the paused inference state before resuming, drop a stale
+  pause with a reason, add a regression test.
+- Developer /interrupt discards partial output (only the "cancel" input
+  policy keeps it).
+- State duplication and save frequency contribute to G7.
+- Retrieval is lexical; a prepared inference is offered before scheduling
+  runs; host/driver.py name collides with "LLM driver" terminology.
+
+PLATFORM PRESSURE
+-----------------
+knowledge/ai-buddy-platform-pressure-2026-11-27.txt (G1-G8) and the addressed
+Integration mail listed there.

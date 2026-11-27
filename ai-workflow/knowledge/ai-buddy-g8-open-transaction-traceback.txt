@@ -1,0 +1,214 @@
+TERTALIS - AI BUDDY G8 RAW EVIDENCE: OPEN CHILD TRANSACTION ESCAPES runJob
+==========================================================================
+
+STATUS
+------
+Raw user-observed pytest output, supplied by the user on 2026-11-25 and kept
+verbatim below this header (line endings normalized only). It is evidence for
+G8 in knowledge/ai-buddy-platform-pressure-2026-11-27.txt section 09.
+
+Environment: AI Buddy Checkpoint C first run, Python 3.15, Windows, local
+combined checkout with Tertalis integration de124f3 platform source (platform
+line numbers match de124f3). The AI Buddy source shown is application-owned
+and was later corrected; the platform path is unchanged.
+
+The first failure is G8: aiBuddy.debug.work.add@1 opened a transaction and
+raised ValueError; runJob then raised RuntimeError from unit.finish(FAILED).
+The second failure is an unrelated AI Buddy defect (driver wall clock), fixed
+in AI Buddy, included only because it is part of the same verbatim output.
+
+----- BEGIN VERBATIM OUTPUT -----
+====================================================== FAILURES =======================================================
+_____________________________________ test_dependency_blocks_work_until_completed _____________________________________
+
+self = <backend.application.applicationRuntime.ApplicationRuntime object at 0x0000022A5D679D30>
+capabilityId = 'aiBuddy.debug.work.add@1', payload = {'kind': 'task', 'purpose': 'beta task', 'dependsOn': ['w000003']}
+job = Job(jobId='01a21096-7632-763e-80eb-5b6018313085', state=<JobState.RUNNING: 'Running'>, result=None, error=None, authoritativeStateAccepted=False)
+
+    @invocationBoundary
+    @lifetimeBoundary
+    @jobExecutionBoundary
+    def runJob(
+        self,
+        capabilityId: str,
+        payload: object | None = None,
+        *,
+        job: Job | None = None,
+    ) -> Job:
+        """
+        Runs one serialized mutating capability Job with cancellation-aware boundaries.
+
+        Supplying a Pending Job lets the caller retain its stable handle before this
+        blocking execution begins and request cancellation from another thread.
+        Existing callers may omit job and receive the internally created handle after
+        execution as before.
+        """
+        with self._lane:
+            requireInvocationEntry(self)
+            self.requireActive()
+            activeJob = Job.new() if job is None else job
+            if not isinstance(activeJob, Job):
+                raise TypeError("job must be a Job or None.")
+            if activeJob.state is not JobState.CANCELLED:
+                activeJob.start()
+            if activeJob.state is JobState.CANCELLED:
+                self.trace(
+                    "job-cancelled",
+                    attributes={
+                        "jobId": activeJob.jobId,
+                        "applicationId": self.applicationRun.application.applicationId,
+                        "applicationRunId": self.applicationRun.applicationRunId,
+                        "capabilityId": capabilityId,
+                        "phase": "before-start",
+                    },
+                )
+                return activeJob
+
+            unit = OrchestrationUnit.mutation(
+                applicationRunId=self.applicationRun.applicationRunId,
+                transactionBase=self.applicationRun.application.committedState,
+            )
+            ioTransaction = self.io.openTransaction()
+            orchestrationAttributes = {
+                "jobId": activeJob.jobId,
+                "orchestrationUnitId": unit.orchestrationUnitId,
+                "applicationId": self.applicationRun.application.applicationId,
+                "applicationRunId": unit.applicationRunId,
+                "transactionId": unit.transactionId,
+                "ioTransactionId": ioTransaction.ioTransactionId,
+                "capabilityId": capabilityId,
+                "workKind": "job-capability",
+            }
+            self.trace("OrchestrationUnitCreated", attributes=orchestrationAttributes)
+            self.trace("OrchestrationUnitTransactionOpened", attributes=orchestrationAttributes)
+            self.trace("managed-io-transaction-opened", attributes=orchestrationAttributes)
+            unit.start()
+            self.trace("OrchestrationUnitStarted", attributes=orchestrationAttributes)
+            self.trace("job-started", attributes=orchestrationAttributes)
+            try:
+                activeJob.cancellationSignal.raiseIfRequested()
+                with processJobScope(activeJob):
+>                   result = self.invokeCapability(
+                        capabilityId,
+                        payload,
+                        memoryView=unit.memoryView,
+                        ioView=ioTransaction,
+                        cancellationSignal=activeJob.cancellationSignal,
+                    )
+
+backend\application\applicationRuntime.py:671:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+backend\llm\providerComposition.py:116: in execute
+    return method(self, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend\llm\executionSessions.py:372: in execute
+    result = method(self, *args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend\application\applicationRuntime.py:582: in invokeCapability
+    result = self.capabilities.invokeResolved(registration, context=context, payload=payload)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend\capabilities\runtime.py:51: in invokeResolved
+    return registration.value.handler(context, payload)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+first-party\applications\aiBuddy\pack\codeEntry.py:1188: in addWork
+    workId = _newWork(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+transaction = <backend.context.codeEntryContext._MemoryTransactionFacade object at 0x0000022A5D6E3380>, kind = 'task'
+now = '2026-11-25T03:43:45+01:00', origin = {'by': 'developer', 'at': '2026-11-25T03:43:45+01:00'}
+purpose = 'beta task', important = False, optional = False, dependsOn = ['w000003'], notBefore = None, expiresAt = None
+inputExperienceIds = (), extra = {}
+
+    def _newWork(transaction, *, kind: str, now: str, origin: dict, purpose: str | None = None,
+                 important: bool = False, optional: bool = False, dependsOn=(), notBefore: str | None = None,
+                 expiresAt: str | None = None, inputExperienceIds=(), extra: dict | None = None) -> str:
+        """Establishes one pending thing to do (the Queue directive)."""
+        if kind not in ACTIVITIES:
+            raise ValueError(f"Unknown activity {kind!r}.")
+        for dependency in dependsOn:
+            if _load(transaction, _addressOf(dependency)) is None:
+>               raise ValueError(f"Unknown dependency {dependency!r}.")
+E               ValueError: Unknown dependency 'w000003'.
+
+first-party\applications\aiBuddy\pack\codeEntry.py:256: ValueError
+
+During handling of the above exception, another exception occurred:
+
+makeHarness = <function makeHarness.<locals>.factory at 0x0000022A5D681170>
+
+    def test_dependency_blocks_work_until_completed(makeHarness):
+        harness = makeHarness(["<say>A done</say>", "<say>C done</say>", "<say>B done</say>"])
+        _task(harness, "alpha task")
+        _task(harness, "beta task", dependsOn=["w000003"])
+        _task(harness, "gamma task")
+        harness.driver.pause()
+>       harness.settle()
+
+first-party\applications\aiBuddy\tests\test_checkpointC.py:42:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+first-party\applications\aiBuddy\tests\conftest.py:123: in settle
+    if not self.driver.runOnce():
+           ^^^^^^^^^^^^^^^^^^^^^
+first-party\applications\aiBuddy\host\driver.py:323: in runOnce
+    handled = self._handleCommands()
+              ^^^^^^^^^^^^^^^^^^^^^^
+first-party\applications\aiBuddy\host\driver.py:247: in _handleCommands
+    job = self._job(capabilityId, payload)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+first-party\applications\aiBuddy\host\driver.py:174: in _job
+    return self.runtime.runJob(capabilityId, payload, job=job)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend\llm\providerComposition.py:116: in execute
+    return method(self, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend\llm\executionSessions.py:372: in execute
+    result = method(self, *args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend\llm\executionSessions.py:429: in execute
+    result = method(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^
+backend\application\applicationRuntime.py:715: in runJob
+    unit.finish(OrchestrationUnitOutcome.FAILED)
+backend\orchestration\runtime.py:270: in finish
+    self._transaction.abort()
+backend\values\committed.py:636: in abort
+    self._requireNoChildren()
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <backend.values.committed.CommittedValueTransaction object at 0x0000022A5D5F3BF0>
+
+    def _requireNoChildren(self) -> None:
+        if self._children:
+>           raise RuntimeError("Transaction has an unresolved active child transaction.")
+E           RuntimeError: Transaction has an unresolved active child transaction.
+
+backend\values\committed.py:728: RuntimeError
+_______________________________________ test_suspend_resume_abandon_and_expiry ________________________________________
+
+makeHarness = <function makeHarness.<locals>.factory at 0x0000022A5D750250>
+
+    def test_suspend_resume_abandon_and_expiry(makeHarness):
+        harness = makeHarness(["<say>alpha done</say>"])
+        _task(harness, "alpha task")
+        _task(harness, "beta task")
+        _task(harness, "gamma task", notBeforeSeconds=120, expiresInSeconds=60)
+        _change(harness, "w000001", "suspend")
+        _change(harness, "w000002", "abandon")
+        harness.settle()
+        assert harness.providerPrompts() == []
+        schedule = harness.read("aiBuddy.debug.schedule@1", {"now": harness.clock()})
+>       assert {entry["id"]: entry.get("reason") for entry in schedule["candidates"]} == {
+            "w000001": "suspended", "w000003": "scheduled for 2026-11-24T21:02:00+01:00"}
+E       AssertionError: assert {'w000001': '...:45:46+01:00'} == {'w000001': '...:02:00+01:00'}
+E
+E         Omitting 1 identical items, use -vv to show
+E         Differing items:
+E         {'w000003': 'scheduled for 2026-11-25T03:45:46+01:00'} != {'w000003': 'scheduled for 2026-11-24T21:02:00+01:00'}
+E         Use -v to get more diff
+
+first-party\applications\aiBuddy\tests\test_checkpointC.py:203: AssertionError
+=============================================== short test summary info ===============================================
+FAILED first-party/applications/aiBuddy/tests/test_checkpointC.py::test_dependency_blocks_work_until_completed - RuntimeError: Transaction has an unresolved active child transaction.
+FAILED first-party/applications/aiBuddy/tests/test_checkpointC.py::test_suspend_resume_abandon_and_expiry - AssertionError: assert {'w000001': '...:45:46+01:00'} == {'w000001': '...:02:00+01:00'}
+============================================ 2 failed, 31 passed in 2.32s =============================================
+----- END VERBATIM OUTPUT -----

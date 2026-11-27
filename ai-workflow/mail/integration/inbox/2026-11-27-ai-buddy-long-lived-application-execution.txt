@@ -1,0 +1,67 @@
+FROM
+ai-buddy
+
+TO
+integration
+
+SUBJECT
+Design pressure: Applications cannot keep working after their lifecycle hooks return
+
+STATUS
+request
+
+CONTEXT
+AI Buddy is now materialized (checkpoints A-F, user-verified on Python 3.15) and
+runs continuously. Tertalis runs application lifecycle hooks once and executes
+capabilities only when a caller invokes them, so AI Buddy hosts its own loop in
+application launcher code. This makes concrete the long-lived, event-driven
+pressure AI Buddy first raised on 2026-09-17 (archived mail
+2026-09-17-ai-buddy-shared-host-and-concurrency.txt).
+
+REQUEST / INFORMATION
+Please evaluate and prioritize a platform facility for continuous Application
+execution, as design pressure for the Flow/Job execution work rather than a
+request to implement a particular scheduler. Concrete needs, mechanism open:
+
+a. continuous execution after create/load, started by the platform rather than by
+   host code;
+b. timed wake-up for due times (scheduled work, periodic checks, expiry) without
+   polling;
+c. delivery of external input, such as user messages, into the Application as
+   events;
+d. host control at safe boundaries: pause, quiescence, inspection;
+e. long external waits, notably model streaming, without holding the
+   ApplicationRun lane for the whole wait, with continuation afterwards.
+
+Current facts at de124f3: lifecycle hooks run once and their Contexts are
+invalidated on return; runJob/invokeCapability are caller-driven;
+backend/hooks and backend/services are empty placeholders; Flow (Invocations,
+Subscriptions, Emits) is designed in design/architecture.txt 02.04/04 with only a
+non-authoritative working checkpoint; ER/EX records exclude a scheduler and none
+is assigned.
+
+OWNERSHIP EXPECTATION
+integration / platform design (Flow, Job execution, RuntimeHost). AI Buddy keeps
+its application-owned driver until a platform facility exists and would adopt one
+only through an authorized integration.
+
+BLOCKING
+No. Cost of the workaround: hosting logic lives in an Application launcher (any
+other host or UI must reuse it); idle polling every 0.25 s runs a preparation Job
+per poll; quiescence is imitated in the driver.
+
+RELEVANT MATERIAL
+ai-workflow/knowledge/ai-buddy-platform-pressure-2026-11-27.txt section 02
+ai-workflow/knowledge/shared-runtime-resource-pressure.txt (host pressure)
+ai-workflow/knowledge/application-suspension-continuation-pressure.txt section 09
+  (wake triggers and suspend/wake notification, AI Buddy input)
+Platform ref examined: Tertalis/Tertalis integration
+  de124f3be8f1b6c025ea528e5470b0d14efdde42
+
+REPORT BACK
+Ownership/priority decision; design checkpoint reference when one exists.
+
+NOTES
+Serialized Job execution itself is not challenged: the earlier AI Buddy concern
+about Jobs holding the lane was withdrawn as deliberate design (ER-02 review);
+only waits under the lane (item e) remain, as part of this pressure.

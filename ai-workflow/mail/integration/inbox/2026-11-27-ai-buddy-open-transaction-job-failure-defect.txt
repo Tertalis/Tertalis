@@ -1,0 +1,72 @@
+FROM
+ai-buddy
+
+TO
+integration
+
+SUBJECT
+Defect: a failing capability with an open child transaction makes runJob raise instead of returning a FAILED Job
+
+STATUS
+request
+
+CONTEXT
+During the user-directed AI Buddy materialization (2026-11-24..27), an AI Buddy
+capability that rejected invalid input after opening a memory transaction made
+runJob itself raise "Transaction has an unresolved active child transaction."
+The user observed it on Python 3.15. Source inspection at Tertalis/Tertalis
+integration de124f3 shows a platform ordering defect, not an AI Buddy-specific
+behaviour: the platform intends to clean up the invocation's transactions, but
+the cleanup is suppressed.
+
+REQUEST / INFORMATION
+Please fix, with a regression test, the path where a capability run by runJob
+raises while a transaction it opened through ctx.memory.openTransaction() is
+unresolved:
+
+1. invokeCapability's finally calls context.invalidate()
+   (backend/application/applicationRuntime.py 605).
+2. CodeEntryContext.invalidate sets _valid = False (backend/context/
+   codeEntryContext.py 467) before calling memory.close (473).
+3. _MemoryFacade.close (257-261) aborts each facade inside suppress(RuntimeError);
+   _MemoryTransactionFacade.abort (186-189) first calls _requireValid(), which
+   now raises, so the underlying CommittedValueTransaction stays active.
+4. runJob's failure handler (707-715) calls unit.finish(FAILED), which aborts
+   the unit transaction (backend/orchestration/runtime.py 269-271);
+   _requireNoChildren (backend/values/committed.py 726-728) raises.
+5. The RuntimeError leaves runJob before activeJob.fail(err) (724): the Job stays
+   RUNNING with no terminal outcome and the capability's error is only chained
+   context.
+
+Suggested fix (owner's choice): make _MemoryFacade.close abort the underlying
+transactions directly, bypassing the facade validity check, or close memory
+before clearing validity; and, defensively, guarantee a terminal Job outcome in
+runJob even if unit cleanup raises, keeping the capability's exception primary.
+
+OWNERSHIP EXPECTATION
+integration (backend context/orchestration/runJob contracts). AI Buddy does not
+implement platform changes.
+
+BLOCKING
+No. AI Buddy works around it by aborting the transactions it opened before
+re-raising (application-owned guard). Other Packs remain exposed: any capability
+that raises with an unresolved transaction under runJob is affected.
+
+RELEVANT MATERIAL
+Analysis and unexecuted reproducer test:
+  ai-workflow/knowledge/ai-buddy-platform-pressure-2026-11-27.txt section 09
+User-observed verbatim pytest output (2 failed, 31 passed; first failure is G8):
+  ai-workflow/knowledge/ai-buddy-g8-open-transaction-traceback.txt
+Platform ref examined: Tertalis/Tertalis integration
+  de124f3be8f1b6c025ea528e5470b0d14efdde42
+Pattern reference for the test: tests/backend/application/test_jobCancellation.py
+
+REPORT BACK
+Accepted fix SHA and a consumer impact notice to ai-buddy (protocol 12.16) so
+AI Buddy can schedule removal of its guard through an authorized integration.
+
+NOTES
+The reproducer in the knowledge record was never executed; it encodes the
+expected post-fix behaviour (FAILED Job, ValueError as error, nothing
+committed). Existing platform tests commit their transactions and do not cover
+this path. No AI Buddy source is proposed for upstream import.

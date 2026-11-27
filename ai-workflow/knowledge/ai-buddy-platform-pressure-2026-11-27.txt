@@ -1,0 +1,299 @@
+TERTALIS - AI BUDDY PLATFORM PRESSURE REVIEW (G1-G8)
+=====================================================
+
+STATUS / AUTHORITY
+------------------
+Application pressure from the ai-buddy workstream, recorded 2026-11-27. Durable
+coordination knowledge, NOT design authority and NOT an implementation assignment.
+Requests derived from it are sent as addressed mail (section 10).
+
+Examined read-only at Tertalis/Tertalis integration
+de124f3be8f1b6c025ea528e5470b0d14efdde42. File/line references below are at that
+commit. Evidence is classified as:
+  SOURCE   - inspection of platform source/records in this review; no test run;
+  USER     - observed by the user on Python 3.15 while running AI Buddy;
+  UNRUN    - code written for this record and never executed.
+
+ORIGIN
+------
+The user-directed AI Buddy materialization (checkpoints A-F, 2026-11-24..27; see
+knowledge/ai-buddy-materialization-checkpoints-a-f.txt) recorded eight candidate
+platform gaps while building on Tertalis. Before reporting, each was re-examined
+against source, design documents and workflow records, because several were first
+written from incomplete inspection. Three did not survive that check.
+
+01. OUTCOME SUMMARY
+-------------------
+G1  Long-lived application execution     KEEP      design pressure (mail)
+G2  Job holds the ApplicationRun lane      WITHDRAWN deliberate design
+G3  Cancelled Job discards staged state    WITHDRAWN accepted pattern exists
+G4  No capability caller authority         KEEP      low priority, no action now
+G5  No Value System enumeration            DEMOTED   observation only
+G6  No application quiescence              MERGED    into existing suspension record
+G7  SaveBundle generation growth           KEEP      pressing for long-lived apps (mail)
+G8  Failed capability with open child      KEEP      DEFECT, fix requested (mail)
+    transaction escapes runJob
+
+02. G1 - LONG-LIVED APPLICATION EXECUTION (KEEP)
+------------------------------------------------
+02.01. Fact (SOURCE). Application lifecycle hooks run once each:
+       backend/application/lifecycle.py _resumeCreate/_resumeLoad invoke
+       onApplicationCreate/Load/Run, and each hook Context is invalidated when
+       the hook returns (backend/packs/runtime.py _invokeApplicationHook).
+       Capability execution is caller-driven only (backend/application/
+       applicationRuntime.py invokeCapability 546, runJob 611).
+02.02. Fact (SOURCE). backend/hooks/__init__.py ("Processing hook registry")
+       and backend/services/__init__.py ("Runtime service registry") are empty
+       placeholders. backend/process runs host-configured external tools and is
+       unrelated. "emit" references in the runtime are tracing evidence.
+02.03. Fact (SOURCE). design/architecture.txt 02.04 and 04 describe Flow
+       (Invocations, Subscriptions, Emits; Jobs with lifetimes independent of
+       listeners). Its only detailed design is the non-authoritative working
+       checkpoint design/working/memory-value-system-flow-checkpoint-11.txt.
+       ER-01..ER-04 and EX records consistently list "scheduler" as excluded;
+       nothing assigns it.
+02.04. Consequence. Nothing lets an Application keep working after its
+       lifecycle hooks return. AI Buddy runs an application-owned host-side
+       driver (host/driver.py in AI Buddy source): one runtime thread runs
+       capabilities as Jobs, polls every 0.25 s while idle (running a
+       preparation Job per poll), queues commands, implements debugger pauses
+       and imitates quiescence. Hosting logic therefore lives in an
+       Application launcher; any other host or UI would have to reuse it.
+02.05. Concrete needs, independent of mechanism:
+       a. continuous execution after create/load, started by the platform;
+       b. timed wake-up for due times (scheduled work, periodic checks,
+          expiry) without polling;
+       c. delivery of external input (user messages) into the Application as
+          events;
+       d. host control at safe boundaries: pause, quiescence, inspection;
+       e. long external waits, notably model streaming, without holding the
+          ApplicationRun lane for the whole wait, with continuation afterwards
+          (the Flow Invocation shape). This replaces the original G2 concern.
+02.06. Related: G6 (wake triggers), Completion/AI Buddy host pressure in
+       knowledge/shared-runtime-resource-pressure.txt.
+
+03. G2 - JOB HOLDS THE APPLICATIONRUN LANE (WITHDRAWN)
+------------------------------------------------------
+03.01. Fact (SOURCE). invokeCapability (556) and runJob (626) hold the
+       ApplicationRun lane for their whole duration, including provider
+       streaming; no path releases it there. "Outside lanes" work in the
+       llama.cpp and composition code concerns composition and cleanup only.
+03.02. Deliberate. knowledge/execution-resource-er02-review.txt lines 30-34:
+       preserve serialized Job/transaction semantics; do not broadly release
+       the runtime mutation lock around arbitrary Pack code. Cancellation from
+       another thread is the designed way to influence a running Job.
+03.03. No AI Buddy requirement needs simultaneous Jobs. Only visible effect:
+       inspection commands wait for the running inference.
+03.04. Held in reserve, raise only if practice demands it: a lane-free,
+       read-only inspection path over a consistent committed snapshot
+       (CommittedValueLayer already serializes individual reads with its own
+       lock, backend/values/committed.py 105). Long waits are G1 02.05e.
+
+04. G3 - CANCELLED JOB DISCARDS STAGED STATE (WITHDRAWN)
+--------------------------------------------------------
+04.01. Fact (SOURCE). runJob's cancellation path (693-706) aborts the state
+       and ManagedIo transactions and ends the Job Cancelled without a result.
+04.02. Accepted pattern. PM-02 stream observation keeps evidence in a
+       caller-held handle that survives the run (knowledge/
+       stream-observation.txt). Experiment Runner met the same problem and
+       solved it with an Application-owned recorder obtained before the Job;
+       Integration found no shared API change needed
+       (knowledge/experiment-runner-ex03-implementation.txt 95-101,
+       knowledge/experiment-runner-ex03-review.txt 88-92).
+04.03. AI Buddy follows the same pattern: streamed text goes to a caller-owned
+       list outside the Job; a follow-up Job commits it as an interrupted step.
+04.04. Optional, not requested: a developer-guidance line that evidence which
+       must survive cancellation is captured by caller-owned recorders outside
+       the Job and committed afterwards if it should become state. Two
+       Applications have now needed it independently.
+
+05. G4 - CAPABILITY CALLER AUTHORITY (KEEP, LOW PRIORITY)
+---------------------------------------------------------
+05.01. Fact (SOURCE). Capabilities form one flat namespace resolved by
+       identifier (backend/capabilities/runtime.py resolve 47). CodeEntry calls
+       carry no caller identity or permission check
+       (backend/context/codeEntryContext.py 284-287); host invokeCapability
+       carries none either.
+05.02. Precedents for per-CodeEntry authority exist for other resources:
+       llama.cpp execution grants bound to exact Pack/version/entry/source
+       SHA-256 (first-party/llmDrivers/llamaCpp/README.md, ER-03), and
+       per-CodeEntry process-tool authority. The interoperability vision
+       leaves capability authority open
+       (design/foundation/TERTALIS_LANGUAGE_AGNOSTIC_INTEROPERABILITY_VISION_BASE.txt
+       573-576).
+05.03. Not exploitable in AI Buddy today: model output is parsed into tags
+       mapped to AI Buddy's own functions with per-situation availability, and
+       the Application loads only the first-party llama.cpp Pack and its own
+       AppPack. AI Buddy enforces "inferred requests acquire no authority"
+       itself; aiBuddy.debug.* is never reachable from inference.
+05.04. Triggers that would make it matter: exposing capabilities to a model
+       through native tool calling; loading third-party Packs into the same
+       Application (any could call aiBuddy.debug.*, e.g. rewrite a protected
+       rule); trustworthy attribution of interventions (today "by developer"
+       means only "arrived through a debug capability").
+05.05. Handling: record as pressure for caller identity and authority on
+       capability invocation, from Pack and host callers. No action now.
+
+06. G5 - VALUE SYSTEM ENUMERATION (DEMOTED TO OBSERVATION)
+----------------------------------------------------------
+06.01. Fact (SOURCE). The CodeEntry memory facade offers point operations
+       only (load/state/metadata/describe/dependency; set/setAbsent/invalidate
+       in transactions). CommittedValueLayer.snapshot() (committed.py 221) is
+       host-side, used for saving. backend/memory is an empty placeholder.
+       The Memory Value System working checkpoint plans no address
+       enumeration or query.
+06.02. AI Buddy keeps per-collection sequence counters and an open-work
+       index inside its transactions; no defect arose. Retrieval reads every
+       memory item, linear in size; an Application-owned term index is
+       possible without platform change.
+06.03. Revisit if a second Application independently needs collections or
+       prefix queries, matching the working checkpoint's own criterion (keep
+       local mechanisms local; revisit after multiple independent
+       realizations demonstrate recurring value), or if bulk reads become
+       material.
+
+07. G6 - APPLICATION QUIESCENCE (MERGED)
+----------------------------------------
+07.01. Already tracked in far more depth by
+       knowledge/application-suspension-continuation-pressure.txt; nothing in
+       the runtime implements it yet ("quiescence" in
+       backend/runtime/executionResources.py concerns provider resources).
+07.02. AI Buddy's consumer input (hook/notification need, Job categories,
+       continuation, wake triggers, input-during-suspension divergence,
+       resource release) is appended to that record as section 09.
+
+08. G7 - SAVEBUNDLE GENERATION GROWTH (KEEP, PRESSING)
+------------------------------------------------------
+08.01. Fact (SOURCE). Each publish writes a complete, immutable generation
+       containing the whole committed root (backend/save/applicationStore.py
+       class contract 29-43, publish 270). Large values are content-addressed
+       chunks inside each bundle, but nothing is shared between generations.
+       ApplicationStore offers create/publish/load only; no retention or
+       pruning operation exists.
+08.02. Older generations have a real purpose: load falls back to the newest
+       valid prior generation (applicationStore.py 347-348). Retention must
+       keep that guarantee.
+08.03. No generation-retention policy was found in workflow or design
+       records; Memory Value System retention concerns values, not bundles.
+08.04. Pressure (USER + SOURCE). AI Buddy saves after most changes, about two
+       generations per handled message, and its committed state grows with
+       every inference. The user's instance reached generation 29 in a short
+       live session (2026-11-25). Each generation is a full copy of a larger
+       state, so disk use grows roughly quadratically with use: weeks of
+       continuous operation reach gigabytes of near-identical files.
+08.05. Requested (mail): a generation retention policy preserving fallback
+       (for example last N plus periodic checkpoints), and/or lower per-save
+       cost such as sharing unchanged chunks between generations.
+08.06. AI Buddy will reduce its own contribution independently (application
+       work): store prompts/outputs once per inference record unless edited,
+       and a save policy at message-completion, lifecycle and exit
+       boundaries instead of after every Job.
+
+09. G8 - FAILED CAPABILITY WITH OPEN CHILD TRANSACTION (DEFECT)
+---------------------------------------------------------------
+09.01. Sequence (SOURCE), for a capability run by runJob that opens
+       ctx.memory.openTransaction() and raises before commit/abort:
+       1. invokeCapability's finally calls context.invalidate()
+          (applicationRuntime.py 605).
+       2. CodeEntryContext.invalidate sets _valid = False (codeEntryContext.py
+          467) BEFORE running self.memory.close (473).
+       3. _MemoryFacade.close aborts each opened facade inside
+          suppress(RuntimeError) (257-261).
+       4. _MemoryTransactionFacade.abort first calls self._requireValid()
+          (186-189), which now raises "CodeEntryContext is no longer valid.";
+          close() suppresses it, so the underlying CommittedValueTransaction
+          stays ACTIVE as a child of the OrchestrationUnit transaction.
+       5. runJob's failure handler (707-715) calls
+          unit.finish(OrchestrationUnitOutcome.FAILED); finish aborts the unit
+          transaction (orchestration/runtime.py 269-271);
+          CommittedValueTransaction.abort -> _requireNoChildren
+          (committed.py 634, 726-728) raises "Transaction has an unresolved
+          active child transaction."
+       6. That RuntimeError leaves runJob from inside the except block, before
+          activeJob.fail(err) (724). The Job stays RUNNING with no terminal
+          outcome; the original error survives only as __context__.
+09.02. Observed (USER). AI Buddy Checkpoint C first pytest run on Python
+       3.15, Windows, 2026-11-25 ("2 failed, 31 passed"): a developer
+       capability (aiBuddy.debug.work.add@1) opened a transaction, then
+       raised ValueError("Unknown dependency 'w000003'."). The traceback ran
+       backend\application\applicationRuntime.py:715 (runJob,
+       unit.finish(FAILED)) -> backend\orchestration\runtime.py:270 (finish)
+       -> backend\values\committed.py:636 (abort) -> committed.py:728
+       RuntimeError: Transaction has an unresolved active child transaction.
+       The ValueError appeared only as the chained "During handling" cause,
+       and the RuntimeError escaped runJob into the caller. Platform line
+       numbers match de124f3. Verbatim output:
+       knowledge/ai-buddy-g8-open-transaction-traceback.txt.
+09.03. Scope. Affects any Pack capability that raises with an unresolved
+       transaction under runJob (or any outer-transaction memoryView). The
+       platform clearly intends cleanup (close() docstring "Best-effort aborts
+       unresolved transactions owned by this invocation"); the ordering
+       defeats it. Existing platform tests commit their transactions and do
+       not cover this path.
+09.04. Suggested fix (owner's choice):
+       - _MemoryFacade.close aborts the underlying CommittedValueTransaction
+         objects directly, bypassing the facade validity check; or
+       - CodeEntryContext.invalidate closes memory before clearing _valid;
+       - defensively, runJob's failure path guarantees a terminal Job outcome
+         even if unit cleanup raises, keeping the capability's exception as
+         the primary error and attaching the cleanup error.
+09.05. Reproducer (UNRUN; expected today: RuntimeError from runJob; expected
+       after fix: FAILED Job carrying ValueError, nothing committed). Shaped
+       after tests/backend/application/test_jobCancellation.py:
+
+       from pathlib import Path
+       from backend.application.applicationRuntime import ApplicationRuntime
+       from backend.context import CodeEntryIdentity
+       from backend.orchestration import JobState
+       from backend.packs.runtime import PackResolver
+       from backend.registration import RegistrationScope
+       from backend.values import MISSING
+
+       def test_failed_capability_with_open_transaction_returns_failed_job():
+           runtime = ApplicationRuntime(appPackId="test.app",
+                                        packResolver=PackResolver(roots=()))
+           runtime.start()
+           identity = CodeEntryIdentity(
+               applicationId=runtime.applicationRun.application.applicationId,
+               applicationRunId=runtime.applicationRun.applicationRunId,
+               packId="test.pack", packVersion="1.0.0", codeEntryId="entry",
+               codeEntryInstanceId="open-transaction-entry",
+               sourceSha256="source-sha", implementationFormat="python-source@1",
+               implementationId="implementation-sha")
+           runtime.registerCodeEntry(identity, Path.cwd())
+           scope = RegistrationScope()
+
+           def handler(ctx, _payload):
+               transaction = ctx.memory.openTransaction()
+               transaction.set("test/open/value", 1)
+               raise ValueError("rejected input")
+
+           runtime.capabilities.register(
+               scope, ownerId=identity.codeEntryInstanceId,
+               capabilityId="test.open@1", handler=handler)
+           scope.publish()
+           try:
+               job = runtime.runJob("test.open@1")
+               assert job.state is JobState.FAILED
+               assert isinstance(job.error, ValueError)
+               state = runtime.applicationRun.application.committedState
+               assert state.load("test/open/value") is MISSING
+           finally:
+               scope.withdraw()
+               runtime.unregisterCodeEntry(identity.codeEntryInstanceId)
+               runtime.close()
+
+09.06. AI Buddy workaround (application-owned): every AI Buddy capability is
+       registered through a guard that aborts transactions it opened before
+       re-raising. Harmless after a platform fix; removable then.
+
+10. REQUESTS SENT
+-----------------
+mail/integration/inbox/2026-11-27-ai-buddy-open-transaction-job-failure-defect.txt
+  G8 - defect fix with regression test.
+mail/integration/inbox/2026-11-27-ai-buddy-savebundle-generation-growth.txt
+  G7 - generation retention / per-save growth.
+mail/integration/inbox/2026-11-27-ai-buddy-long-lived-application-execution.txt
+  G1 - design pressure for continuous execution, wake-up, input and control.
+mail/integration/inbox/2026-11-27-ai-buddy-platform-pressure-findings.txt
+  G2-G6 - findings for the record; no action requested.

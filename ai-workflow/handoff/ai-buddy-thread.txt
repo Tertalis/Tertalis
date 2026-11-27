@@ -1,57 +1,67 @@
-ACTANT AI BUDDY THREAD HANDOFF
-==============================
+TERTALIS AI BUDDY THREAD HANDOFF
+===============================
+Recorded: 2026-11-27
 
 WORKSTREAM
 ----------
 ID: ai-buddy
-Owner: AI Buddy thread.
-Working branch: actant-ai-buddy
-Canonical coordination ref: actant-integration
+Owner: AI Buddy thread (user-directed)
+Working repository/branch: Tertalis/Tertalis-AI-Buddy integration
+Canonical coordination: Tertalis/Tertalis integration (protocol section 02)
+Current STATE: ai-workflow/state/ai-buddy.txt (authoritative over this handoff)
 
-CURRENT OBJECTIVE
------------------
-Create the first useful AI Buddy as an Actant application and use it as sustained
-pressure on long-lived orchestration, concurrent applications, shared runtime
-facilities, cancellation, and later specialist capabilities such as ASR and TTS.
+WHERE THINGS STAND
+------------------
+The initial materialization scope (requirements Stages 1-6, checkpoints A-F) is
+implemented and user-verified on Python 3.15. Implementation record:
+ai-workflow/knowledge/ai-buddy-materialization-checkpoints-a-f.txt.
+Platform pressure G1-G8 was reviewed and reported:
+ai-workflow/knowledge/ai-buddy-platform-pressure-2026-11-27.txt.
 
-CURRENT MATERIAL POSITION
--------------------------
-- actant-ai-buddy exists as an application branch from actant-integration.
-- At workstream registration, actant-ai-buddy matched actant-integration commit
-  7fe30477395b020d75ce4cc397ca3556f84ef1d8 before coordination-only registration
-  commits advanced actant-integration.
-- No AI Buddy application source has been materialized yet.
-- Initial coordination state is in ai-workflow/state/ai-buddy.txt.
+The AI Buddy source and tests exist in the user's local checkout and are to be
+committed to the AI Buddy repository at first-party/applications/aiBuddy/ and
+tests/first_party/applications/aiBuddy/. Check STATE for whether that commit
+exists before relying on it.
+
+READ FIRST WHEN RESUMING
+------------------------
+In the AI Buddy repository (once committed):
+  first-party/applications/aiBuddy/ai-buddy-implementation-design.txt
+    current design and rationale per area, refinements of the conceptual
+    design, open questions
+  first-party/applications/aiBuddy/README.md
+    running, commands, settings, verification
+Application design inputs (application-owned; keep with the AI Buddy repo):
+  ai-buddy-conceptual-design.txt, ai-buddy-initial-materialization-
+  requirements.txt, ai-buddy-handoff.txt
 
 DECISIONS / BOUNDARIES
 ----------------------
-- This thread owns AI-Buddy-specific application behavior; Integration owns reusable
-  Actant/runtime facilities exposed by the application pressure.
-- The first user surface may be deliberately primitive: terminal input/history and
-  TTS output are sufficient to begin exercising the runtime.
-- AI Buddy should not assume one monolithic agent loop. Exploration currently favors
-  bounded scheduled execution steps plus potentially concurrent service loops with
-  different latency requirements; this remains exploratory rather than final design.
-- ASR, TTS, vision, and other specialist operations should be requested by semantic
-  capability. Their implementation may be local, Windows-native, dedicated-runtime,
-  or cloud; driver location is not AI Buddy semantics.
-- ASR itself should return recognized speech/provenance. Speaker recognition, intent,
-  interrupt classification, and similar interpretation are separate capabilities or
-  AI Buddy processing layers.
-- llama.cpp remains the dependable primary local cognition path and Windows is the
-  primary platform target. Optional runtimes such as vLLM may add capabilities but
-  must not become pillars unless future evidence justifies that change.
-- Completion and AI Buddy are expected to coexist; Materialization Test may run
-  temporarily beside them. They must not evolve into independently hosted Actant
-  universes with mutually unaware model/resource authorities.
-- Existing DA-28 and IS-03..IS-06 host/client material is relevant design input. It is
-  not frozen implementation instruction: implementation pressure may revise or
-  replace those ideas and later reconcile the DA/IS corpus to the better materialized
-  design.
+- All AI Buddy semantics live in its AppPack CodeEntry; the host driver only
+  sequences Jobs, holds debugger state and delivers committed speech. It exists
+  because Tertalis has no continuous application execution (G1).
+- "host/driver.py" is the application loop, NOT an LLM driver. The LLM path is
+  the unmodified first-party llama.cpp Pack.
+- AI Buddy source and tests are application-exclusive (12.08); never commit them
+  to Tertalis/Tertalis or import them upstream.
+- Do not import newer platform source on resume (12.04). Platform changes
+  answering G1/G7/G8 reach AI Buddy only through an authorized integration.
+- Python 3.15 only (no 3.14 fallback target for AI Buddy work).
+- Verify on Python 3.15 before claiming results; a 3.12/shimmed sandbox is not
+  evidence.
 
 NEXT ACTION
 -----------
-Inspect the smallest live Actant path needed to host an AI Buddy AppPack and invoke
-its first capability/loop step. Materialize application-owned behavior only where it
-is useful immediately. When a shared runtime gap becomes concrete, send it to
-Integration rather than implementing a competing local authority.
+1. Record the AI Buddy commit SHA in STATE (user commits).
+2. Check Integration replies to the four 2026-11-27 messages.
+3. Take the next application backlog item the user selects (STATE: CURRENT
+   OBJECTIVE 2): stale-breakpoint fix, /stop semantics, single storage of
+   prompts/outputs, save policy, managed llama.cpp mode, driver rename.
+4. Stage 7 behavioural experimentation when the user chooses.
+
+UNCERTAINTY
+-----------
+- No independent or Integration verification exists; all results are
+  user-reported. No test run was reported after the tests moved directory.
+- The user's kept copy of the requirements may still be Draft 0.1 (separate
+  stages); the single-scope decision is recorded in the knowledge record.

@@ -1,0 +1,54 @@
+FROM
+ai-buddy
+
+TO
+integration
+
+SUBJECT
+SaveBundle generations grow without bound for long-lived applications: retention and per-save cost
+
+STATUS
+request
+
+CONTEXT
+AI Buddy is a continuously running application that persists after most state
+changes. ApplicationStore writes every save as a complete immutable generation and
+never removes old ones. In a short live session on 2026-11-25 the user's AI Buddy
+instance reached generation 29. Its committed state grows with every inference, so
+total disk use grows roughly quadratically with use.
+
+REQUEST / INFORMATION
+Please evaluate and assign platform handling for SaveBundle growth:
+
+1. Generation retention that keeps the existing safety net: load falls back to
+   the newest valid prior generation (backend/save/applicationStore.py 347-348),
+   so pruning must keep enough valid generations (for example last N plus
+   periodic checkpoints). ApplicationStore currently offers only create, publish
+   and load (class contract 29-43, publish 270).
+2. Lower per-save cost, for example sharing unchanged content-addressed chunks
+   between generations instead of embedding the whole state in each bundle.
+
+No retention policy for bundle files was found in workflow or design records;
+Memory Value System retention concerns values, not save generations.
+
+OWNERSHIP EXPECTATION
+integration (backend save/persistence). Retention policy may be host/application
+configurable; the guarantee and mechanism are platform-owned.
+
+BLOCKING
+No for development; yes for weeks-long continuous operation, which is AI Buddy's
+intended use.
+
+RELEVANT MATERIAL
+ai-workflow/knowledge/ai-buddy-platform-pressure-2026-11-27.txt section 08
+Platform ref examined: Tertalis/Tertalis integration
+  de124f3be8f1b6c025ea528e5470b0d14efdde42
+
+REPORT BACK
+Assessment or assignment; when accepted, a consumer impact notice to ai-buddy.
+
+NOTES
+AI Buddy will reduce its own contribution independently (application work, not a
+substitute for this request): store each prompt/output once per inference record
+unless a developer edited it, and save at message-completion, lifecycle and exit
+boundaries rather than after every Job.

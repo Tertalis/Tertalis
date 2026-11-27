@@ -206,3 +206,45 @@ The following are intentionally unresolved until implementation pressure is exam
 
 Implementation should resolve these incrementally without weakening the semantic rules
 above.
+
+09. AI BUDDY CONSUMER INPUT (2026-11-27)
+---------------------------------------
+
+Source: ai-buddy workstream, from its materialized implementation (checkpoints
+A-F, user-verified on Python 3.15; knowledge/ai-buddy-materialization-checkpoints-
+a-f.txt). This section is consumer evidence for the open questions in section 08.
+It does not change sections 01-08.
+
+09.01. Lifecycle hooks / notification (section 08: interaction with lifecycle
+hooks). AI Buddy needs to be NOTIFIED of suspension and wake, not only suspended.
+Its own domain rule is that an active AI Buddy inside a quiescent application is
+invalid, so before suspension it deactivates itself, after wake it reactivates
+only if suspension caused the deactivation, and its next prompt states how long
+it was not running. Its driver currently does this by hand.
+
+09.02. Job categories (section 05.07). AI Buddy maps onto the suggested
+distinction: model inference execution is cancellable (partial output is held by
+the caller and the inference stays prepared for a later attempt); preparation,
+processing and bookkeeping Jobs are short and must complete. Its imitated
+quiescence waits for the current Job to reach a boundary, matching SUSPENDING.
+
+09.03. Durable continuation (section 03). AI Buddy needs none beyond committed
+State: prepared and generated inferences and all working information are
+committed, so even the strongest suspension (full runtime unload) is equivalent
+to a restart, which it already survives.
+
+09.04. Wake triggers (section 02.04). AI Buddy needs timer wake (scheduled work,
+periodic checks, expiry) and input wake. See also the long-lived execution
+pressure: mail/integration/inbox/2026-11-27-ai-buddy-long-lived-application-
+execution.txt.
+
+09.05. Input during suspension. AI Buddy currently DEFERS input while its
+imitated quiescence lasts; section 02.04 allows input to WAKE a suspended
+application. When the platform provides suspension, whether input wakes it is
+host policy; AI Buddy's own explicit inactivity (input recorded and queued, not
+processed) remains a separate application-level state. The deferral is a
+stopgap, not a requirement.
+
+09.06. Resource release (section 02.02). In managed llama.cpp mode the main
+practical benefit for AI Buddy would be releasing model residency (VRAM) while
+suspended.
