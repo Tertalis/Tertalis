@@ -17,6 +17,16 @@ Earlier repository/branch routing, freeze and synchronization instructions
 below are historical; current canonical protocol governs. Earlier capability
 observations are tied to their recorded baselines, not fresh verification.
 
+MIGRATION CLOSURE VERIFICATION - 2026-11-27
+-------------------------------------------
+User reports successful tests in all six migrated repositories. Exact tested
+local SHAs, commands, counts, runtimes and logs for this report were not
+supplied; no independent execution is claimed.
+Retained platform baseline: b47133f3ea6487fee348f05556016b6970613889 (accepted migration combination d13e65d).
+Evidence: ai-workflow/knowledge/application-platform-provenance-2026-11-27.txt.
+Migration is closed by user direction; ordinary ownership and integration rules
+remain. No new platform adoption or assignment is implied.
+
 HISTORICAL WORKSTREAM RECORD
 ----------------------------
 
