@@ -1,30 +1,42 @@
 TERTALIS REPOSITORY AND COORDINATION MIGRATION PLAN
 ==================================================
 Recorded: 2026-11-13
-Status: structural migration substantially complete; closure audit pending
+Status: CLOSED - 2026-11-27 (user-authorized)
 Current repository: Tertalis/Tertalis
 Current coordination ref: integration
 Original source: EnterTheNameHere/Turnix (historical)
 
-CURRENT MIGRATION DECISION - 2026-11-27
----------------------------------------
-User explicitly lifted the global migration/development freeze. Normal work
-may proceed under the canonical ownership, admission, assignment and
-integration rules; existing ownership claims do not expire automatically.
-AI Buddy development during the migration was intentional and user-directed,
-using the Tertalis organization, not the legacy repository. The original
-migration conversation was unavailable on Android; this continuation
-reconciles records that lagged actual work.
-Repository separation, identity migration and centralized file coordination
-are substantially complete. Formal migration closure remains pending:
-verify repository readiness, accepted platform SHA provenance, and active
-workstream routing; reconcile operational records without rewriting history.
-GitHub-native coordination (M5) is a separate development workstream and
-is not a migration closure prerequisite. File-based coordination remains
-authoritative until an explicitly approved, verified cutover. Semantic
-design reconciliation, PackageManager and CLI are likewise separate work.
-Earlier freeze statements and legacy repository routing in migration
-history are historical and superseded by this decision.
+MIGRATION COMPLETION - 2026-11-27
+----------------------------------
+Status: CLOSED, user-authorized. All six repositories passed tests as
+reported by the user following the migration audit. Exact local tested
+SHAs, commands, counts, runtimes and logs for this final report were not
+supplied. No independent test execution is claimed.
+
+M1 COMPLETE: global migration freeze explicitly lifted.
+M2 COMPLETE: migration plan, handoff and canonical records reconciled.
+M3 COMPLETE: imported platform SHAs and scoped acceptance established;
+   knowledge/application-platform-provenance-2026-11-27.txt.
+M4 COMPLETE: active workstream routing and current STATE reconciled.
+   Canonical Integration STATE renamed to state/tertalis.txt (33e029d).
+M5 TRANSFERRED: GitHub-native coordination is separate development.
+M6 COMPLETE: six integration trees and default main metadata audited;
+   shared platform projection of 251 blobs matches all five Applications.
+   Application-local ignore rules relocated (AI Buddy 2a905b8;
+   Materialization Test 1c6e307); 18 legacy coordination files retired.
+   Application docs/design centralized; one local ai-workflow/index.txt
+   per Application. Obsolete docs/test.txt removed in 3f85c86.
+M7 COMPLETE: user authorized closure after reporting successful tests.
+
+Normal development proceeds under canonical admission, ownership and
+Integrator acceptance rules. No automatic platform upgrades, branch
+deletion, ownership release or new assignments follow from closure.
+File-backed coordination remains authoritative. GitHub-native coordination,
+semantic design reconciliation, PackageManager, CLI, and ordinary Application
+backlogs are separate work; none is a migration closure prerequisite.
+Historical records/refs are retained as evidence, not operational routing.
+Branch-protection enforcement and independent runtime execution were not
+re-audited. No new formal release or blanket compatibility claim is made.
 
 HISTORICAL PLAN AND EXECUTION RECORD (earlier status is not current)
 
