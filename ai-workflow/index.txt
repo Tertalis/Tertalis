@@ -54,15 +54,15 @@ Historical migration continuation evidence:
 ai-workflow/handoff/tertalis-migration-thread.txt and
 ai-workflow/knowledge/tertalis-migration-plan.txt, now accessed on
 Tertalis/Tertalis integration. Current recovery handoff takes precedence.
-Global work freeze remains in effect;
-the retired thread must not be resumed. The handoff records all executed
+The global freeze was lifted by the user on 2026-11-27.
+The retired thread is superseded by the current migration handoff. The handoff records all executed
 changes, unresolved naming decisions, history preservation, and the next
 user-controlled step.
 
 Tertalis migration control (2026-11-13)
 --------------------------------------
-Global development freeze: only the user-authorized migration conversation
-may advance Tertalis work. The stepwise, history-preserving migration plan
+Historical migration freeze (lifted 2026-11-27): normal development now
+follows canonical admission and ownership rules. The stepwise, history-preserving migration plan
 (and destination transfer LAST) is recorded at:
 ai-workflow/knowledge/tertalis-migration-plan.txt.
 Existing branch names and coordination ref remain unchanged until explicitly
@@ -120,7 +120,7 @@ Application branch or import the whole Application source upstream.
 
 Canonical coordination ref
 --------------------------
-actant-integration
+Tertalis/Tertalis integration
 
 All shared coordination reads/writes MUST explicitly use this ref, even when the
 conversation is implementing on another branch. The coordination ref is a storage
@@ -247,7 +247,8 @@ Integration result/acknowledgement mail handled/archived. EX-06 acceptance intac
 Purpose: bounded Experiment Runner Application; EX-01 through EX-06 including
 required corrections independently accepted. Application-exclusive source/tests.
 Owner: Application implementer; Integration owns independent acceptance.
-Working branch: actant-experiment-runner. Coordination ref: actant-integration.
+Working repository/branch: Tertalis/Tertalis-Experiment-Runner integration.
+Coordination: Tertalis/Tertalis integration.
 State/handoff: ai-workflow/state/experiment-runner.txt.
 Completed assignment: ai-workflow/assignments/experiment-runner-ex06.txt.
 EX-06 including App R1/R2 ACCEPTED2026-11-08 at
@@ -375,7 +376,7 @@ Purpose: coherent shared Actant platform integration, bounded implementation
          delegation, dependency coordination, cross-workstream verification,
          shared runtime/reusable facilities, and selective direct implementation.
 Owner: Actant integration thread.
-Working branch: actant-integration
+Working repository/branch: Tertalis/Tertalis integration
 State: ai-workflow/state/actant.txt
 Additional shared state:
 - ai-workflow/state/shared-packs.txt
@@ -448,7 +449,7 @@ Purpose: model materialization/model-test application and independent Actant des
          pressure from that application.
 Owner: materialization-test application thread for application iteration; Integration
        owns its integration-facing state summary.
-Working branch: actant-materialization-test
+Working repository/branch: Tertalis/Tertalis-Materialization-Test integration
 State: ai-workflow/state/materialization-test.txt
 Inbox: ai-workflow/mail/materialization-test/inbox/
 Archive: ai-workflow/mail/materialization-test/archive/
@@ -458,7 +459,7 @@ Purpose: Evil Birthday/paper analysis application and independent Actant design
          pressure from that application.
 Owner: Evil analysis application thread for application iteration; Integration owns
        its integration-facing state summary.
-Current known branch/baseline: actant-evil-analysis-materialization
+Working repository/branch: EnterTheNameHere/Evil-Analysis integration (private)
 State: ai-workflow/state/evil-analysis.txt
 Inbox: ai-workflow/mail/evil-analysis/inbox/
 Archive: ai-workflow/mail/evil-analysis/archive/
@@ -467,8 +468,8 @@ Workstream: completion
 Purpose: Actant Completion application, VS Code integration, and independent Actant
          design/implementation pressure from interactive code completion.
 Owner: Actant Completion thread.
-Working branch: actant-completion
-Parent integration line: actant-integration
+Working repository/branch: Tertalis/Tertalis-Completion integration
+Platform repository: Tertalis/Tertalis
 State: ai-workflow/state/completion.txt
 Handoff: ai-workflow/handoff/completion-thread.txt
 Inbox: ai-workflow/mail/completion/inbox/
@@ -481,7 +482,7 @@ Owner: AI Buddy thread.
 Working repository/branch: Tertalis/Tertalis-AI-Buddy integration
 Coordination: Tertalis/Tertalis integration (historical branch actant-ai-buddy)
 Status 2026-11-27: initial materialization (Stages 1-6, checkpoints A-F) user-
-  verified; source commit to the AI Buddy repository pending; G1/G7/G8 requests
+  verified; source committed at 9bb8692; G1/G7/G8 requests
   and G2-G6 findings sent to Integration.
 Implementation record: ai-workflow/knowledge/ai-buddy-materialization-checkpoints-a-f.txt
 State: ai-workflow/state/ai-buddy.txt
