@@ -1,3 +1,18 @@
+TERTALIS PLATFORM INTEGRATION - CURRENT ROUTING
+================================================
+Updated: 2026-11-27
+Workstream ID: integration. Owner: Integration workstream.
+Repository: Tertalis/Tertalis; branch: integration.
+This existing state/actant.txt path is retained for link stability only.
+Global freeze lifted; normal admission, ownership and acceptance rules apply.
+AI Buddy requests G8/G7/G1 and G2-G6 findings are in the canonical inbox;
+see state/ai-buddy.txt. No new implementation assigned by this audit.
+Historical acceptance and implementation evidence below is preserved;
+legacy branch names and old synchronization instructions are not live routing.
+
+HISTORICAL INTEGRATION RECORD
+-----------------------------
+
 EXPERIMENT RUNNER USABILITY ACCEPTANCE (2026-11-10)
 -------------------------------------------------
 App0a3b745 (usabilityc9bc0a2 + user-directed archive-manifest.json rename)
