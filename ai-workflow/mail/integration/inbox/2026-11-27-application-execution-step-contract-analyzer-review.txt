@@ -1,0 +1,175 @@
+FROM
+implementation-request analyzer (user-directed review)
+
+TO
+integration
+
+SUBJECT
+Application execution checkpoint #1 / implementation plan #1: review findings
+
+STATUS
+finding
+
+CONTEXT
+User requested independent analysis of the AI Buddy step execution proposal
+and authorized publishing this response on Tertalis/Tertalis integration.
+Architectural direction is supported in principle; implementation readiness
+is not recommended until the following corrections are addressed. This is
+an analyzer review, not implementation authorization or design acceptance.
+
+REQUEST / INFORMATION
+Retain the bounded first slice: opt-in manifest step declaration, exactly
+one executor per executing ApplicationRun, ordinary Jobs, submitted input,
+event-driven waits, host pause/resume, clock, completion observation.
+Application owns work selection; platform owns execution opportunity.
+Do not expand into general scheduling, Flow, durable queues/continuations,
+resource-releasing suspension, cross-Application arbitration, platform
+breakpoints or automatic retries.
+
+Blocking findings:
+
+R1. Execution admission. Current ApplicationRuntime.runJob is public and
+caller-driven. Lane serialization alone does not enforce executor FIFO,
+pause or shutdown admission. Specify and enforce an executor-owned Job
+admission path for opted-in runs; reject external bypass, preserve legitimate
+nested capability invocation within admitted Jobs and unchanged caller-driven
+behavior for non-opted-in runs.
+
+R2. Shutdown ownership. A bounded wait expiring means shutdown is incomplete,
+not that execution has ended. Retain runtime registration, resources and
+ownership until live work terminates; expose incomplete shutdown and permit
+retry. Do not unload Packs or release live execution resources. Current
+RuntimeHost.closeApplicationRun pops the runtime before cleanup; stop closes
+execution resources and performs teardown under host-lock boundaries.
+Review these paths explicitly, including lock ordering and joins outside
+locks needed by the worker. Merely inserting executor.stop into runtime.close
+is insufficient. The proposed 30 s default is reasonable as a wait policy,
+not a resource lifetime limit.
+
+R3. Job callbacks. Current runJob calls succeed/fail/cancel inside the
+ApplicationRuntime lane and decorated execution boundaries. Releasing only
+Job._lane before callback dispatch is insufficient. Establish dispatch
+outside relevant Job/runtime/host/queue locks and execution boundaries,
+including terminal registration and pending cancellation races. Exactly-once
+dispatch per registration, isolated callback failures, coherent terminal
+publication, no lock-held notifications. Running completion callbacks run
+on finishing thread; pending cancellation on cancelling thread; already
+terminal registration on registering thread (subject to safe dispatch
+boundary). Specify non-blocking notification contract: may submit but must
+not synchronously wait for work requiring the same executor. No separate
+callback service required unless needed to satisfy the safety contract.
+
+R4. Pending shutdown work. Reject new admissions when stopping. Give queued
+Jobs a terminal disposition rather than leaving them Pending forever.
+Recommendation: cancel unstarted Jobs observably; do not automatically cancel
+running work or recreate cancelled Jobs on next run. Specify atomic
+submit/dispatch/cancel/stop races. Current Job.start and requestCancellation
+also require race-safe handoff (runJob checks state before calling start).
+
+R5. Inspection authority. Current invokeCapability is general invocation
+with allowExecution=True. CP-2.03 cannot rely on convention that external
+callers invoke only read-only capabilities. Demonstrate existing enforceable
+restriction or introduce a narrow inspection boundary. Preserve legitimate
+internal execution. Inspection is still serialized and cannot be promised
+during a running Job holding the lane. No comprehensive classification
+system is requested.
+
+R6. Startup. Proposed start in _resumeCreate/_resumeLoad follows
+invokeApplicationRun but precedes attempt.complete in lifecycle.resume.
+Start execution eligibility only after successful activation, service
+readiness, host registration/publication and release of relevant boundaries.
+Validate the actual composition path. Failure must not leave orphan workers.
+Manifest form is supported; validate existence, permitted ownership and
+executability of the declared capability during activation, not on first
+asynchronous step.
+
+R7. G8 and unexpected execution failures. Open-transaction failure can make
+runJob raise without returning a terminal Job. Resolve G8 independently
+before completing executor integration, or demonstrate safe containment.
+Worker outer failure boundary must retain primary evidence, expose fault,
+avoid silent worker death, fabricated success or blind retry, and prevent
+unsafe continuation with unresolved transaction authority.
+
+Contract clarifications:
+- Preserve wake requests arriving during a step even if its outcome is idle
+  or at; use a flag/generation or equivalent atomic protocol. Cover submit,
+  resume, clock and wait-registration races.
+- Step reason is descriptive, not authoritative; deterministic selection
+  when multiple triggers apply; committed Application state selects work.
+- Cancelled step normally returns to boundary selection (after submitted
+  work); not an executor fault. Unresolved authority must fault and block
+  unsafe continuation. Distinguish recoverable fault from unsafe runtime.
+- Invalid directive after successful commit does not undo committed state.
+  Distinguish pre-acceptance failure, committed invalid directive and
+  failure after authority accepted. No automatic retry.
+- Recommend submitted Jobs reaching execution trigger a step regardless of
+  terminal outcome; pre-start cancellation need not trigger a step.
+  Coalesce step opportunities, not actual input Jobs.
+- Snapshot distinguishes running with pause/stop requested from actually
+  paused/stopped; expose coherent current Job and admission/control state.
+- Clock.now should have one return type (recommend aware datetime);
+  serialize at payload boundaries. Reject naive dates, past due eligible
+  immediately; monotonic waits with wall-clock reconciliation are sound.
+  ManualClock must not lose advance notifications. 60 s internal clock
+  reconciliation is not Application polling.
+- Own-AppPack submission restriction acceptable initially, not a permanent
+  architectural assumption.
+
+AI Buddy adoption:
+- Preserve outbox delivery/acknowledgment semantics; external delivery and
+  marking delivered are distinct effects.
+- Application-owned debugger state does not necessarily imply durable
+  debugger state; decide restart behavior and stale pause IDs explicitly.
+- Reuse phase implementation within one admitted step Job without accidental
+  independent nested transaction/Job authority boundaries.
+- Removing 0.25 s polling and gratuitous lastSeenAt writes is justified.
+- Adopt only an independently accepted exact platform SHA.
+
+Additional deterministic regressions:
+Direct bypass while paused; wake during step returning idle; submit versus
+stop; pending cancellation versus dispatch; timeout retaining live runtime
+and resources; retry shutdown; callback re-entry and registration races;
+activation failure/no orphan worker; first step after publication; step
+cancellation; unexpected runJob exception; two independent executing runs;
+invalid declaration rejected on activation; ManualClock lost notification;
+inspection mutation rejection. Use barriers/events and controlled clocks,
+not arbitrary sleep-based race tests. Preserve existing non-executor
+Application compatibility and consumer verification.
+
+Recommended ordering:
+Correct design/plan; resolve G8; building blocks; executor core; lifecycle
+integration; independent platform acceptance; explicit AI Buddy adoption.
+No new feature scope is requested by this ordering.
+
+OWNERSHIP EXPECTATION
+Integration / platform design and implementation owns disposition of these
+findings and revised checkpoint/plan. AI Buddy owns later consumer adoption.
+Analyzer recommendations are not binding design-owner decisions by themselves.
+
+BLOCKING
+Yes, recommendation against authorizing the proposed platform implementation
+as written. Does not block AI Buddy's existing application-owned loop.
+
+RELEVANT MATERIAL
+design/working/application-execution-checkpoint-01.txt
+design/working/application-execution-implementation-plan-01.txt
+ai-workflow/mail/integration/inbox/2026-11-27-ai-buddy-application-execution-step-contract.txt
+ai-workflow/mail/integration/inbox/2026-11-27-ai-buddy-long-lived-application-execution.txt
+ai-workflow/knowledge/application-suspension-continuation-pressure.txt
+backend/orchestration/runtime.py (Job)
+backend/application/applicationRuntime.py (invokeCapability, runJob)
+backend/application/lifecycle.py (_resumeCreate, _resumeLoad, resume)
+backend/runtime/runtimeHost.py (closeApplicationRun, stop)
+Proposal identifies platform ref 65e4951; source excerpts read from live
+integration branch, not an independently pinned checkout.
+
+REPORT BACK
+Disposition of each blocking finding and contract clarification, revised
+checkpoint and implementation plan references, and any disagreements or
+alternative mechanisms before implementation admission.
+
+NOTES
+Document and selected source review only. No tests executed, no exhaustive
+source audit, no independent verification of every AI Buddy consumer detail.
+No implementation, design authority changes, branch creation or acceptance
+record authorized by this review.
