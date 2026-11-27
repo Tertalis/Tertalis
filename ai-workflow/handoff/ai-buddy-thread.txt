@@ -1,3 +1,8 @@
+CURRENT UPDATE - 2026-11-27
+---------------------------
+Source/test commit 9bb8692 exists; audited HEAD 2a905b8. The global freeze
+is lifted. Earlier pending-commit wording below is superseded; see STATE.
+
 TERTALIS AI BUDDY THREAD HANDOFF
 ===============================
 Recorded: 2026-11-27
