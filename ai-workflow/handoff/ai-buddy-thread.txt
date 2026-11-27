@@ -1,7 +1,16 @@
 CURRENT UPDATE - 2026-11-27
 ---------------------------
-Source/test commit 9bb8692 exists; audited HEAD 2a905b8. The global freeze
-is lifted. Earlier pending-commit wording below is superseded; see STATE.
+Explicit user-authorized platform adoption accepted:
+AI Buddy 3b5fac2af441f14ceb070c38d495c35e0dada5e0 on integration,
+Tertalis 82772a2ff6cc48a9fb8e776654b2a14bb119b6d7 on integration.
+All 282 shared paths match; 17 application paths and three untracked design
+inputs preserved. Combined 1876 tests pass, zero skips; tools and frontend
+fixture five-View/restart Chromium smoke pass. No application code adaptation
+or browser UI implementation. No new real-model verification; existing
+Application defects remain. Acceptance record:
+knowledge/ai-buddy-platform-adoption-2026-11-27.txt.
+Earlier pending-commit and no-independent-verification text is historical;
+current STATE takes precedence. Refresh barriers before further work.
 
 TERTALIS AI BUDDY THREAD HANDOFF
 ===============================

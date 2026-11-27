@@ -21,7 +21,9 @@ BROWSER FRONTEND - 2026-11-27
 DONE Platform steps 2-4 accepted at 3424d434 after independent Windows checks
 and four integration corrections; 1813 tests and five-View/restart smoke pass.
 NOW Bounded platform integration complete locally; no remote push performed.
-NEXT Separately authorized AI Buddy adoption/UI; no consumer upgrade implied.
+DONE AI Buddy platform adoption: App 3b5fac2a / Tertalis 82772a2f,
+1876 combined tests, exact 282-path projection and five-View/restart smoke pass.
+NEXT AI Buddy browser UI/loop integration remains separately scoped work.
 Evidence: knowledge/browser-frontend-integration-2026-11-27.txt.
 
 READING THIS BOARD

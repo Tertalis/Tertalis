@@ -13,7 +13,9 @@ Provides: CodeEntry formats/roles, frontend.kit, frontend.host and shared
 loopback HTTP; viewer/observation bridge regression coverage passes.
 Consumer impact: stricter manifests, shared HTTP/viewer helper extraction,
 optional frontend Packs and bounded logs/actions. AI Buddy adoption and
-its UI remain separate work; no Application baseline advanced.
+its UI remain separate work. AI Buddy platform adoption is now accepted:
+Application 3b5fac2a / Tertalis 82772a2f; 1876 combined tests pass.
+See knowledge/ai-buddy-platform-adoption-2026-11-27.txt.
 Evidence/limits: knowledge/browser-frontend-integration-2026-11-27.txt.
 No remote push performed by this check. No additional platform work assigned.
 

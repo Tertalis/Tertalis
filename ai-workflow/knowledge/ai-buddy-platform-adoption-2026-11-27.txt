@@ -1,0 +1,92 @@
+AI BUDDY PLATFORM ADOPTION - ACCEPTED, 2026-11-27
+================================================
+Authority: user explicitly requested updating AI Buddy's Tertalis platform
+to the latest version, identifying both repositories' integration branches.
+
+EXACT ACCEPTED COMBINATION
+--------------------------
+Application: Tertalis/Tertalis-AI-Buddy integration
+  3b5fac2af441f14ceb070c38d495c35e0dada5e0
+  Parent: 2a905b8548e189d07e2a5b4cbbca3d4ecae6d6b3
+Platform: Tertalis/Tertalis integration
+  82772a2ff6cc48a9fb8e776654b2a14bb119b6d7
+  Latest local and fetched origin/integration at adoption start.
+Historical synchronized platform: f30c393f7d723f9f8a897ff74a054aed1a1e4cd4.
+Initial local application HEAD 9bb86922 was safely fast-forwarded to its
+remote integration 2a905b85 before comparison and baseline tests.
+No push performed by this adoption; commits are local.
+
+PROJECTION AND OWNERSHIP
+------------------------
+Complete recursive Git trees compared by path, blob SHA and mode.
+Initial application had all 251 prior platform paths, with zero missing or
+modified shared blobs versus historical f30c393. Target has 282 shared paths:
+31 added, eight modified, zero removed. Every target shared blob/mode matches
+in the accepted Application tree; no missing, extra or mixed platform files.
+Imported via Git objects from the explicitly selected local platform SHA,
+without merging the complete platform branch into the Application.
+
+Excluded root docs/, design/, canonical ai-workflow/ and platform root
+README.md/AGENTS.md/SETUP.md. Application routing index preserved byte-for-byte.
+Both staged and final committed trees were verified: ai-workflow contains
+exactly index.txt, and no root docs/ or design/ paths are tracked.
+
+All 17 existing Application source/test/local-ignore paths remain unchanged.
+Root README/AGENTS/SETUP were corrected from their obsolete unimplemented
+status and now document the actual launcher, ownership and adopted revision.
+Three pre-existing untracked root documents were verified by SHA-256 before
+and after adoption and left untracked and unchanged: conceptual design,
+handoff and initial materialization requirements. Existing local saves were
+not used or modified by the launcher checks.
+
+CONTRACT IMPACT / ADAPTATION
+----------------------------
+Intervening executable changes are the browser frontend integration:
+CodeEntry format/role validation, frontend.kit/frontend.host, shared loopback
+HTTP, observation bridge/viewer helper extraction and their regressions.
+The existing aiBuddy manifest has an ordinary Python main and remains valid.
+No application code adaptation was necessary. Its terminal launcher still
+activates aiBuddy and the external llama.cpp provider, without frontend Packs.
+Browser UI wiring and managed llama.cpp behavior were not implemented here.
+No previously recorded AI Buddy application defects are claimed fixed.
+Platform design contracts were consulted in canonical Tertalis; none copied.
+
+ACTUAL CHECKS
+--------------
+Windows; each repository's embedded Python 3.15.0b4; Node 23.11.0;
+Chromium 152.0.7977.65; native Ruff 0.17.4 and ty 0.0.99.
+Application repository commands:
+  python-embedded/python.exe -X frozen_modules=off -m pytest tests -q
+    BEFORE adoption: 1816 passed in 23.31s, zero skips/failures.
+    AFTER adoption: 1876 passed in 27.91s, zero skips/failures.
+    Includes 63 AI Buddy scripted-provider tests and imported JS wrappers.
+  python-embedded/python.exe -X frozen_modules=off scripts/verify_tools.py
+    PASS: actual native versions and isolated sample recipes verified.
+    No repository-wide type analysis is implied.
+  python-embedded/python.exe -X frozen_modules=off
+    tests/first_party/frontendHost/smoke.py --playwright <temporary package>
+    --browser W:/Tools/Browsers/Chromium/bin/chrome.exe --output <temporary>
+    PASS: five simultaneous Views, sixth-View cap, conflicting action,
+    actual same-port restart, accepted action becomes unknown, old tabs
+    unauthorized, credential removed from fragment, no storage/cookies.
+    This is a platform fixture AppPack, not an AI Buddy browser UI.
+  python-embedded/python.exe -X frozen_modules=off
+    first-party/applications/aiBuddy/run.py --help
+    PASS, exit 0.
+  Same launcher --list --saves <temporary empty directory>
+    PASS, exit 0; no real saved application touched, no model request.
+  git diff --cached --check
+    PASS.
+Tree verification: all 282 shared blobs/modes exact; 17 Application paths
+unchanged; routing/docs/design invariant passes; three untracked input
+hashes unchanged. Committed tree matches the verified staged tree.
+
+LIMITS AND CONTINUATION
+-----------------------
+No real llama-server/model run, voice behavior, or AI Buddy browser UI test.
+Transient browser output is outside tracked source in the host temp folder;
+this record retains observed results and exact refs, not a durable screenshot
+archive. Embedded Python emits a standard-library home warning but all checks
+completed successfully. Existing Application defects/backlog remain in STATE.
+The accepted platform revision is pinned at the exact SHA above; subsequent
+canonical coordination commits do not alter the imported executable source.

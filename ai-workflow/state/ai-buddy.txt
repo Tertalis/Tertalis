@@ -6,7 +6,9 @@ MIGRATION CLOSURE VERIFICATION - 2026-11-27
 User reports successful tests in all six migrated repositories. Exact tested
 local SHAs, commands, counts, runtimes and logs for this report were not
 supplied; no independent execution is claimed.
-Retained platform baseline: f30c393f7d723f9f8a897ff74a054aed1a1e4cd4 (synchronized; equivalent de124f3 used in user-verified materialization).
+Historical migration baseline: f30c393f7d723f9f8a897ff74a054aed1a1e4cd4
+(synchronized; equivalent de124f3 used in user-verified materialization).
+Current accepted platform adoption is recorded below.
 Evidence: ai-workflow/knowledge/application-platform-provenance-2026-11-27.txt.
 Migration is closed by user direction; ordinary ownership and integration rules
 remain. No new platform adoption or assignment is implied.
@@ -19,16 +21,17 @@ Purpose: AI Buddy application and independent Tertalis design/implementation
          application.
 Owner: AI Buddy thread (user-directed).
 Working repository and branch/ref: Tertalis/Tertalis-AI-Buddy, branch integration.
-  Audited HEAD: 2a905b8548e189d07e2a5b4cbbca3d4ecae6d6b3 (2026-11-27).
+  Accepted HEAD: 3b5fac2af441f14ceb070c38d495c35e0dada5e0 (2026-11-27).
+  Previous application HEAD: 2a905b8548e189d07e2a5b4cbbca3d4ecae6d6b3.
   Source/test commit: 9bb86922877ce7ecd9deac18cc1130b0421b7faa.
 Parent/base relationship: Application repository consuming a pinned Tertalis
   platform snapshot (protocol 12.12).
-Last synchronized Integration ref/commit: recorded synchronization to
-  f30c393f7d723f9f8a897ff74a054aed1a1e4cd4 (2026-11-15). On 2026-11-27 the
-  platform projection at 80b3f23 (backend/, first-party/, tests/, scripts/,
-  tools/, vendor/, root pyproject/requirements/setup files) was byte-identical to
-  Tertalis/Tertalis integration de124f3be8f1b6c025ea528e5470b0d14efdde42. This
-  is a comparison, not an Integrator acceptance.
+Last accepted Tertalis platform commit:
+  82772a2ff6cc48a9fb8e776654b2a14bb119b6d7 (integration, 2026-11-27).
+  Explicit user-authorized adoption; complete 282-path platform projection
+  matches the committed target. Historical synchronization f30c393 is retained
+  in the migration provenance record. Independent acceptance:
+  knowledge/ai-buddy-platform-adoption-2026-11-27.txt.
 
 CURRENT POSITION
 ----------------
@@ -43,18 +46,20 @@ Implementation status:
                                             README, implementation design)
     tests/first_party/applications/aiBuddy/ (63 runtime-contract tests)
   It is application-exclusive (12.08/12.10) and must not be committed to
-  Tertalis/Tertalis. Source commit verified; local ignore rule relocated in
-  2a905b8; root shared files now match the platform projection at 3f85c86.
-  This comparison is not a new integration acceptance.
+  Tertalis/Tertalis. All 17 application source/test/local-ignore paths remain
+  unchanged through the accepted platform adoption. Root orientation was
+  corrected to describe the implemented AppPack and exact adopted platform.
   The commit to AI Buddy repository: 9bb86922877ce7ecd9deac18cc1130b0421b7faa
 
 Verified/exercised behavior (user-reported, Python 3.15, user's Windows host,
   local checkout with Tertalis de124f3 platform source):
 - checkpoint tests A-F passed after the corrections listed in the record; live
   Stage 1-6 demonstrations against a user-run llama-server reported working.
-- No independent or Integration verification. User subsequently reported
-  successful tests in all six migrated repositories (see closure above); exact
-  test selection and local revision were not specified.
+- Independent Windows/Python 3.15 verification at the accepted combination:
+  1876 tests pass (including 63 application tests), zero skips; native tool
+  verification and frontend fixture Chromium five-View/restart smoke pass.
+  Launcher --help and --list with a temporary empty save directory exit 0.
+  No new real-model or AI Buddy browser UI verification was performed.
 
 Backend/shared capability available but not yet adopted by this Application:
 - Managed llama.cpp with ER-03 trusted host composition, grants and explicit
@@ -119,8 +124,9 @@ CURRENT OBJECTIVE
    3424d43402086f13505e1f773178fdd6792dcabf (2026-11-27). Independent
    Windows checks: 1813 tests, kit Node 17/17, five-View/restart Chromium smoke.
    Review: knowledge/browser-frontend-integration-2026-11-27.txt.
-   AI Buddy step 5 remains separate Application-owned work; no source adoption
-   was performed and its accepted platform baseline has not advanced.
+   Platform adoption COMPLETE: AI Buddy 3b5fac2a adopts Tertalis
+   82772a2f. Step 5 (Application browser UI and loop wiring) remains
+   separate work and is not enabled by the source update.
 4. Stage 7 behavioural experimentation on the running system (outside the
    materialization scope).
 
@@ -132,7 +138,8 @@ Outgoing (ai-workflow/mail/integration/inbox/):
 - 2026-11-27-ai-buddy-long-lived-application-execution.txt (G1, request)
 - 2026-11-27-ai-buddy-platform-pressure-findings.txt (G2-G6, finding)
 - Browser UI request reviewed/archived; platform accepted at 3424d434.
-  AI Buddy frontend integration and pinned-platform adoption remain pending.
+  Pinned-platform adoption accepted at 3b5fac2a/82772a2f.
+  Application frontend integration remains pending.
 Incoming: the four availability notices (2026-09-19 x2, 2026-11-03 x2) were
 reviewed and archived on 2026-11-27; their durable content is reflected above.
 No platform adoption is requested or authorized by any of them.
