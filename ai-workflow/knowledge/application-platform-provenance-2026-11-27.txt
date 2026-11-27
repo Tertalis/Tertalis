@@ -2,7 +2,9 @@ TERTALIS APPLICATION PLATFORM PROVENANCE - MIGRATION M3
 ========================================================
 Recorded: 2026-11-27
 Scope: historical migration synchronization, recorded acceptance, and current
-tracked source equality. No new platform adoption or executable verification.
+tracked source equality. No new platform adoption or independent test execution.
+Final closure: user reports successful tests across all six repositories.
+Exact tested local SHAs, commands, counts, runtimes and logs not supplied.
 
 APPLICATION BASELINES
 ---------------------
@@ -42,7 +44,8 @@ AI Buddy
   Source/test commit: 9bb86922877ce7ecd9deac18cc1130b0421b7faa
   Audited current App HEAD: 2a905b8548e189d07e2a5b4cbbca3d4ecae6d6b3
   All 16 source/test commit App-owned paths unchanged; one .gitignore added.
-  No post-test-directory-move suite or independent verification reported.
+  Subsequent user report: successful tests across all six migrated repositories.
+  Exact test selection and tested local SHA not supplied; no independent run.
   Keep f30c393 as historical synchronization provenance; de124f3 is the
   observed verification reference, not a new formal Integrator acceptance.
 
