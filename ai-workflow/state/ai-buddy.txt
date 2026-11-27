@@ -166,11 +166,12 @@ CURRENT OBJECTIVE
    breakpoints later); future quiescence eligibility via AppPack manifest
    and/or config for many-Application hosts. Working design and plan:
    design/working/application-execution-checkpoint-01.txt and
-   application-execution-implementation-plan-01.txt (revision 2 after the
-   analyzer review 2026-11-27: all findings R1-R7 and clarifications
-   accepted; G8 fix is now plan step 2, before the executor). Reply:
-   2026-11-27-ai-buddy-application-execution-review-disposition.txt.
-   Nothing materialized; awaits Integration admission of the revised plan.
+   application-execution-implementation-plan-01.txt, revision 3 after two
+   analyzer reviews (R1-R12 and clarifications all accepted). Replies:
+   2026-11-27-ai-buddy-application-execution-review-disposition.txt and
+   ...-review-r2-disposition.txt. Gates: G8 (plan step 2) may proceed;
+   R10 before Job callbacks, R8/R9 before executor core, R11/R12 before
+   lifecycle integration. Nothing materialized.
 5. Stage 7 behavioural experimentation on the running system (outside the
    materialization scope).
 

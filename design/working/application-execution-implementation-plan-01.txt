@@ -5,12 +5,15 @@ Current Tertalis working location:
     design/working/application-execution-implementation-plan-01.txt
 
 Status:
-    NON-AUTHORITATIVE WORKING PLAN, revision 2 (2026-11-27); planning only,
-    nothing materialized. Revision 2 follows the analyzer review (R1-R7,
-    clarifications) and the recommended ordering.
+    NON-AUTHORITATIVE WORKING PLAN, revision 3 (2026-11-27); planning only,
+    nothing materialized. Revision 2 followed the analyzer review (R1-R7);
+    revision 3 follows the follow-up review (R8-R12, clarifications). Gates:
+    R10 before Job callback acceptance, R8/R9 before executor core
+    acceptance, R11/R12 before lifecycle integration acceptance; step 2 (G8)
+    may proceed independently.
 
 Design source:
-    design/working/application-execution-checkpoint-01.txt revision 2
+    design/working/application-execution-checkpoint-01.txt revision 3
     (cited as CP-n)
 
 Platform ref examined:
@@ -46,25 +49,32 @@ earlier ones.
 ================================
 
 1.01. EDIT backend/context/codeEntryContext.py
-    _MemoryFacade.close aborts still-open nested transactions through the
-    internal CommittedValueTransaction (checking its open state) instead of
-    the facade abort that requires a valid context. Already committed or
-    aborted ones are skipped without suppressing unrelated errors.
+    _MemoryFacade.close aborts still-open nested transactions at any depth,
+    innermost first, through the internal CommittedValueTransaction handles
+    instead of the facade abort that requires a valid context. Already
+    resolved ones are skipped; real cleanup errors are collected, not
+    suppressed, even when invalidation has already begun (CP-8.01).
 
 1.02. EDIT backend/application/applicationRuntime.py (runJob)
-    Every failure path records a terminal Job: if unit.finish or the IO abort
-    raises, the Job is failed with the primary capability error and the
-    cleanup error attached as evidence, the OrchestrationUnit outcome is
-    recorded as failed where possible, and the cleanup failure is reported
-    (raised as a typed RuntimeCleanupError after the Job is terminal) so the
-    caller can tell resolved from unresolved authority (CP-8.02).
+    Every failure path of an admitted Job records a terminal Job: if
+    unit.finish or the IO abort raises, the Job is failed with the primary
+    capability error and every cleanup error attached as evidence, the
+    OrchestrationUnit outcome is recorded as failed where possible, and the
+    Job carries an authority disposition (resolved | unresolved |
+    partially-accepted, CP-8.02); a cleanup failure is also raised as a typed
+    error after the Job is terminal. Rejected requests create no Job.
+    Existing quarantine (execution-resource UNKNOWN) is unchanged.
 
 1.03. TESTS
     NEW  tests/backend/application/test_openTransactionFailure.py: the G8
          reproducer from ai-workflow/knowledge/ai-buddy-g8-open-transaction-
          traceback.txt (capability opens a nested transaction and raises):
-         Job ends Failed, state unchanged, next Job runs; cleanup failure path
-         yields a terminal Job plus typed error.
+         Job ends Failed with the primary error, state unchanged, disposition
+         resolved, next Job runs; nested depth 2-3; children already
+         committed or aborted are skipped; an injected cleanup failure yields a
+         terminal Job, disposition unresolved, primary and cleanup evidence,
+         and no subsequent Job is claimed safe; IO commit failure after memory
+         acceptance -> partially-accepted.
 
 
 2. STEP 3 - BUILDING BLOCKS
@@ -73,16 +83,23 @@ earlier ones.
 2.01. EDIT backend/orchestration/runtime.py (Job)
     - wait(timeout=None) -> bool, Condition on the Job lock, notified at
       terminal publication (CP-10.02)
-    - addDoneCallback(callback); registrations kept with a dispatched flag;
-      dispatchCallbacks() runs undispatched registrations exactly once,
-      outside the Job lock, isolating failures (traced via a hook)
-    - requestCancellation of a Pending Job dispatches on the cancelling thread
-      after releasing the lock; registration on a terminal Job dispatches on
-      the registering thread
-    - tryStart() -> bool replacing check-then-start (CP-10.04)
+    - execution ownership: beginExecution()/endExecution(); an owned Job
+      becomes dispatch-eligible only at endExecution(); a standalone Job at
+      terminal publication
+    - addDoneCallback(callback): dispatch now if eligible and outside any
+      execution boundary; otherwise queue for eligibility (CP-10.03)
+    - per-thread deferred dispatch list flushed by the outermost execution
+      boundary exit, so registering or cancelling inside a boundary never
+      dispatches synchronously there
+    - requestCancellation of a Pending Job dispatches after the Job lock is
+      released (deferred if inside a boundary)
+    - exactly-once per registration; failures isolated and traced
+    - tryStart() -> bool replacing check-then-start (CP-10.05)
     EDIT backend/application/applicationRuntime.py: runJob uses tryStart();
-    its outermost public wrapper calls job.dispatchCallbacks() after all
-    decorated boundaries and lanes are left (caller-driven runs).
+    its outermost public wrapper owns the Job's execution and, in a finally
+    block after all decorated boundaries and lanes are left and the
+    execution scope is cleared, calls endExecution() (dispatch) on normal and
+    exceptional exit alike.
 
 2.02. NEW backend/runtime/clock.py: Clock (now() aware datetime, monotonic()),
     SystemClock, ManualClock (advance with generation, waiters never miss an
@@ -98,8 +115,12 @@ earlier ones.
          callbacks before and after terminal; exactly-once under concurrent
          registration and finish (barriers); pending cancellation dispatch on
          the cancelling thread; callback failure isolated; tryStart against
-         concurrent cancellation; no callback runs while runJob's lanes are
-         held (callback asserts it can take the runtime lane immediately).
+         concurrent cancellation; registration between terminal publication
+         and eligibility queues (barrier inside runJob); dispatch on
+         exceptional runJob exit; registering/cancelling inside an admitted
+         Job defers to the boundary exit; standalone Job completion; lock
+         release proven from another thread (CP-10.06), not by same-thread
+         RLock re-entry.
     NEW  tests/backend/runtime/test_clock.py: ManualClock lost-notification
          regression; naive datetime rejected; ctx.clock invalid after context
          invalidation.
@@ -111,12 +132,17 @@ earlier ones.
 
 3.01. NEW backend/application/executor.py (ApplicationExecutor)
     - created inactive; activate() starts the worker (step 5 decides when)
-    - submit/wake/pause/resume/stop/snapshot (CP-4.01, 4.06); admission
-      closed on stop or unsafe
-    - execution-scope marker (contextvar) set around each admitted Job; the
-      runtime consults it for admission (CP-3)
+    - submit/wake/pause/resume/stop/snapshot/cancel(jobId) (CP-4.01, 4.06,
+      4.07); admission closed on stop or unsafe
+    - execution scope (applicationRunId, jobId) set around each admitted Job;
+      the runtime consults it for admission and rejects nested top-level
+      Jobs (CP-3.02)
     - selection (CP-4.02), coalesced step opportunities and per-Job events
-      (CP-4.03), wake generation (CP-4.04), phases/control (CP-4.05)
+      (CP-4.03), wake generation (CP-4.04) separate from clock generation
+      (CP-4.04a), cancelled step -> one fresh opportunity (CP-4.07),
+      phases/control (CP-4.05)
+    - unsafe: cancel queued Jobs observably, refuse submit/wake/inspection,
+      resume cannot clear it (CP-8.03)
     - step directive validation and outcome classification (CP-6.02, 6.03)
     - outer failure boundary: recoverable fault vs unsafe (CP-8.02)
     - waits on a Condition with clock-derived timeouts, reconciliation at
@@ -143,7 +169,12 @@ earlier ones.
     due at once; "idle" until submit; FIFO submitted before step; one step
     opportunity per executed submitted Job, none for pre-start cancelled;
     wake during a step returning idle (no lost wake); submit vs stop; pending
-    cancellation vs dispatch; pause/resume at boundaries with pauseRequested
+    cancellation vs dispatch; cancelled step continues with exactly one fresh
+    opportunity (and none while paused/stopping/unsafe); ManualClock advance
+    before due, during a step, and while idle never creates a step and an
+    "at" sleeper wakes only when due; cancel(jobId) for queued and running
+    Jobs; unsafe disposes queued Jobs and refuses inspection and resume;
+    pause/resume at boundaries with pauseRequested
     visible while running; direct runJob bypass rejected while running and
     while paused; nested capability call inside a step allowed; inspection
     works while paused and rejects mutation (transaction, IO write, LLM);
@@ -158,6 +189,13 @@ earlier ones.
 4. STEP 5 - LIFECYCLE AND HOST INTEGRATION
 ==========================================
 
+4.00. NEW termination contract (CP-16): ApplicationRuntime.terminate(timeout)
+    with a single cleanup owner (live -> terminating(owner) -> terminated |
+    incomplete), used by ApplicationRuntime.stop/close, RuntimeHost
+    closeApplicationRun/stop, standalone teardown and post-publication
+    activation failure; destructive cleanup and the existing preflight
+    decorators run only after the executor stop completes.
+
 4.01. EDIT backend/application/lifecycle.py and backend/packs/runtime.py
     Validate the declaration after the defining AppPack's registrations are
     published (capability exists, owned by that AppPack, invocable as a Job);
@@ -165,13 +203,17 @@ earlier ones.
 
 4.02. EDIT backend/runtime/runtimeHost.py
     - _initialize: activate the executor after _register and after leaving
-      the host lane (CP-13.01)
+      the host lane (CP-13.04); executor ownership transitions under the
+      executor lock, activate after stop is a no-op (CP-13.02); worker-start
+      failure after publication runs terminate (CP-13.03)
     - closeApplicationRun: stop the executor first, outside the host lane;
       if incomplete, keep the run registered and its resources, report typed
       incomplete; otherwise continue with today's close (CP-7.03)
-    - stop: stop all executors outside the lane before closing execution
-      resources; runs with incomplete executors stay registered, their
-      resources stay owned, stop reports incomplete and stays retryable
+    - stop: close host admission and snapshot runs under the lane, then stop
+      executors outside it before closing execution resources; runs with
+      incomplete executors stay registered, the shared services and
+      resources they need stay open, stop reports incomplete and stays
+      retryable (CP-7.03a)
     - configurable executor stop wait (default 30 s)
 
 4.03. EDIT backend/application/lifecycle.py: standalone create/load activate
@@ -181,6 +223,13 @@ earlier ones.
     EDIT affected runtimeHost tests)
     first step only after publication (step capability observes host
     registration); activation failure leaves no worker (barrier-checked);
+    activate vs closeApplicationRun and activate vs host stop races (barriers;
+    a stopped inactive executor never starts); injected thread-start failure
+    after registration rolls back host tables, shared-service binding and
+    runtime resources; concurrent and repeated terminate share one owner and
+    one outcome; ApplicationRuntime.stop/close standalone honour an
+    incomplete executor stop; concurrent initialization during host stop is
+    refused;
     invalid declaration rejected at activation; close with incomplete stop
     keeps registration and resources, retry closes; host stop retry;
     lock-order test: the worker can finish its Job while closeApplicationRun
@@ -207,13 +256,21 @@ Precondition: an independently accepted exact Tertalis SHA containing steps
        breakpoint or with nothing eligible, "at" the next due time.
     c. Scheduling computes the next due time (notBefore, periodic, expiry,
        intention lifetime); idle steps stop writing lastSeenAt on every check.
-    d. Outbox: the step never marks delivered. The host reads pending entries
-       (inspection), delivers them, then submits aiBuddy.outbox.acknowledge@1
-       as a Job; external delivery and marking delivered stay distinct.
-    e. Debugger state is run-scoped, not durable: aibuddy/debug carries the
+    d. Outbox: the step never marks delivered and the executor thread never
+       delivers. The host adapter delivers on its own thread: it reads
+       pending entries through inspection when a Job completion tells it the
+       outbox may have changed, delivers them, then submits
+       aiBuddy.outbox.acknowledge@1 (through id) as a Job. One delivery is in
+       flight at a time and entries at or below the highest id already
+       delivered and awaiting acknowledgement are not delivered again, so no
+       duplicate concurrent delivery happens. After a restart, delivered but
+       unacknowledged entries are delivered again (at-least-once, as today).
+    e. Debugger state is semantically run-scoped: aibuddy/debug carries the
        applicationRunId it belongs to; a new run ignores and replaces it
-       (breakpoints off unless the launcher asks, no pause). Pause ids include
-       the run id, so a pause id from an earlier run is always stale.
+       (breakpoints off unless the launcher asks, no pause). It is still
+       physically saved with Application state like any other value; only
+       its meaning is limited to its run. Pause ids include the run id, so a
+       pause id from an earlier run is always stale.
        Breakpoint actions (mode, continue, replace prompt/output) are
        capabilities submitted as Jobs and keep the pause-id conflict rule.
     f. Time from ctx.clock (payload "now" accepted for tests).

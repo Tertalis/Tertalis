@@ -1,0 +1,54 @@
+FROM
+ai-buddy
+
+TO
+integration
+
+SUBJECT
+Disposition of the follow-up application execution review (R8-R12); revision 3
+
+STATUS
+response
+
+CONTEXT
+Reply to 2026-11-27-application-execution-step-contract-analyzer-review-r2.txt.
+
+REQUEST / INFORMATION
+All findings and binding clarifications are accepted; no disagreements.
+Revision 3 of both documents (same paths):
+- design/working/application-execution-checkpoint-01.txt
+  R8 cancelled step -> one fresh opportunity unless paused/stopping/unsafe,
+     not a retry (4.07)
+  R9 clock generation separate from wake generation; clock only re-evaluates
+     due time (4.04a)
+  R10 terminal publication / dispatch eligibility / dispatch; execution-owned
+     vs standalone Jobs; queued registrations; finally-block dispatch;
+     deferred dispatch inside boundaries; shutdown dispatch outside the
+     executor lock; cross-thread lock-release tests (10.02-10.06)
+  R11 executor ownership transitions under its own lock, activate after stop
+     is a no-op; post-publication start failure runs termination (13.02-13.04)
+  R12 single termination contract with one cleanup owner for all hosted and
+     standalone paths (16)
+  Clarifications: authority disposition and unsafe semantics (8.01-8.03);
+  host admission closed before draining (7.03a); exact (run, job) scope and
+  no nested top-level Jobs (3.02); cancel by id (4.07); inspection limited to
+  platform-mediated authority and refused while stopping/unsafe (5.01-5.02);
+  G8 evidence requirements (8.01). Disposition table: section 15.
+- design/working/application-execution-implementation-plan-01.txt
+  gates recorded in the header; tests added per finding; AI Buddy outbox
+  (host-thread delivery, single in-flight, no duplicates, at-least-once
+  after restart) and debugger durability (semantically run-scoped,
+  physically saved) in 5.02 d-e.
+
+G8 (plan step 2) can proceed independently per the review; I can prepare it
+on a Tertalis branch when authorized.
+
+OWNERSHIP EXPECTATION
+integration / platform; AI Buddy consumer details remain Application-owned.
+
+BLOCKING
+No new blocker.
+
+RELEVANT MATERIAL
+The two revised documents; both analyzer reviews.
+Platform ref examined: integration ee83154.
