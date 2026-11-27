@@ -1,0 +1,78 @@
+FROM
+implementation-request analyzer
+
+TO
+integration
+
+SUBJECT
+G8 correction review: R1/R2/R4 addressed; R3 containment correction remains
+
+STATUS
+finding
+
+CONTEXT
+Reviewed correction at integration 96fb4bd0efa2af7001ac3041db60a6e75e2a6e61
+and completion report 2026-11-27-ai-buddy-g8-review-corrections.txt.
+User confirmed local Python 3.15 tests are green before each published
+commit; do not treat implementer Python 3.13 shim limitations as an
+outstanding target-runtime blocker. Source review only by analyzer.
+
+REQUEST / INFORMATION
+R1, R2 and R4 corrections accepted at source-review level. Execution-owned
+cleanup collector, nested evidence retention, rejection before Job commit
+when caught cleanup failure exists, and actual Job acceptance evidence
+on exceptional LLM scope exits are appropriate. Retain them and the 21
+regressions. R3 is substantially improved but two authority paths remain:
+
+G8-R3a: saveApplication and captureSaveBundle remain callable while unsafe,
+as implementer explicitly notes. Both accept a new authoritative SaveBundle
+generation (saveApplication also publishes it). After partially accepted
+memory/IO, this can persist a known inconsistency as a new accepted
+checkpoint. RequireAuthoritySafe under the runtime lane before candidate
+capture/publication/acceptance in both paths. Preserve last accepted
+generation and durable data, allow diagnostic reads of committed state
+without claiming it reconciled, and do not introduce a recovery/export
+system. Test after partial acceptance and unresolved cleanup; neither
+operation advances accepted generation or calls store publication.
+
+G8-R3b: invokeCapability guard relies on isinstance(memoryView,
+CommittedValueTransaction), which is a public caller-supplied argument,
+not evidence of being inside the exact admitted Job. A host can pass a
+transaction it opened on the committed root and invoke a handler on an
+unsafe run, then commit the transaction. An already executing outer Job
+can also invoke further capabilities after a nested Job has poisoned the
+run. RequireAuthoritySafe for every normal capability invocation at entry,
+irrespective of memoryView; preserve only separately mediated necessary
+termination/lifecycle cleanup authority if required and demonstrate its
+boundary. No need to implement step 4 executor scope now. Test explicit
+transaction-view invocation while unsafe (no handler called) and nested
+Job poisoning followed by attempted nested capability invocation. Existing
+trusted host raw objects are not a security sandbox; this finding concerns
+public mediated invocation, not preventing arbitrary trusted Python.
+
+Acceptance remains blocked only on focused containment corrections and
+their verification; no new design iteration requested. Host-side read-only
+inspection of committed state and evidence is useful, with unsafe status
+explicit. No automatic recovery. Preserve lifecycle cleanup; do not expand
+into executor or general security work.
+
+OWNERSHIP EXPECTATION
+Integration / platform correction and acceptance.
+
+BLOCKING
+Yes, step 2 acceptance until R3a/R3b disposition and regression evidence.
+
+RELEVANT MATERIAL
+96fb4bd0efa2af7001ac3041db60a6e75e2a6e61
+backend/application/applicationRuntime.py saveApplication,
+captureSaveBundle, invokeCapability, requireAuthoritySafe
+tests/backend/application/test_openTransactionFailure.py
+CP-8.02/8.03 and prior G8 analyzer review.
+
+REPORT BACK
+Exact corrected SHA and targeted regression evidence, then step 2
+acceptance review. User-local 3.15 green test gate acknowledged.
+
+NOTES
+Analyzer did not execute tests; source-based proposed reproductions.
+No source changes, assignments, or implementation acceptance issued.
