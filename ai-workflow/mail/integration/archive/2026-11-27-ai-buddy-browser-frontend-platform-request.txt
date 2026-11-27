@@ -1,0 +1,81 @@
+FROM
+ai-buddy
+
+TO
+integration
+
+SUBJECT
+Review request: platform browser frontend (CodeEntry formats, frontend.kit, frontend.host)
+
+STATUS
+request
+
+CONTEXT
+AI Buddy runs continuously but is controlled only through a terminal, which is
+workable but uncomfortable for status, breakpoints, edits and interruption. The
+design owner agreed (2026-11-27) on a browser-hosted secondary UI built as
+platform work from the start, with Python authoritative and JS sandboxed in the
+user's browser. The agreed direction is recorded in the non-authoritative
+working checkpoint design/working/browser-frontend-checkpoint-01.txt, which
+builds on Flow checkpoint 11 and the G-01/G-02 precedent.
+
+REQUEST / INFORMATION
+At the design owner's direction, platform steps 2-4 of checkpoint section 9 were
+materialized as a proposal on branch browser-frontend, based on integration
+de124f3. Please review and decide on integration. The file-by-file scope and the
+deviations found during materialization are in
+design/working/browser-frontend-implementation-plan-01.txt (sections 1-3 and 7):
+
+a. Step 2 - CodeEntry "format" (default "python-source@1", reusing the
+   existing implementationFormat vocabulary; adds "js-module-source@1") and
+   "role" ("main" default, or "library"); activation executes only python
+   entries; browser entries are read, hashed and recorded
+   (PackLoader.declaredEntries, ctx.packs); kinds closed to "appPack" and
+   "modPack" (no View Pack kind); unknown CodeEntry keys rejected.
+b. Step 3 - first-party/frontendKit (browser library Pack); the observation
+   viewer's bounded JSON, loopback validation and request options moved into
+   it (viewer behaviour and its 41 JS tests unchanged).
+c. Step 4 - shared loopback HTTP security mechanics moved from the
+   observation bridge into backend/transport/loopbackHttp.py (bridge rebased,
+   its tests unchanged), and first-party/frontendHost: per-run 256-bit
+   credential passed in the URL fragment, Invocation intake (stable ids,
+   Accepted/Result/FlowError, conflict expectations), per-track Emit streams
+   with positions, gaps and snapshots, multiple tabs (one stream each, View
+   cap), and a delivery seam where HTTP threads never call the runtime.
+
+Verification: the user ran the full suite on Windows, Python 3.15: green
+(after two Windows fixes recorded in the plan, section 7.03). Additionally, in
+the assistant workspace: Node frontend-kit and viewer suites, and a real-Chrome
+smoke (two Views, conflict, View cap, host close). Node is optional; the
+regular suite skips the kit's JS tests without it.
+
+Current facts at de124f3: backend/packs/runtime.py ignores unknown CodeEntry
+keys and imports every declared CodeEntry as Python, so a browser entry cannot
+be declared yet (checkpoint 2.06). Experiment Runner already reuses the
+unchanged G-02 viewer, which makes it the natural extraction source.
+
+Deliberate deviation to review: G-01 forbids credentials in URLs; the design
+owner chose "token in URL for now" for the frontend host only. The checkpoint
+uses the fragment plus history.replaceState and records residual risks (7.04).
+
+OWNERSHIP EXPECTATION
+integration / platform (Packs runtime, first-party Packs, Flow design).
+AI Buddy owns step 5 (its tracks, Invocation mapping and browser main
+CodeEntry) in Tertalis/Tertalis-AI-Buddy and adopts steps 2-4 only through a
+pinned platform SHA (protocol 12.12).
+
+BLOCKING
+Not blocking AI Buddy operation (the terminal keeps working). AI Buddy step 5
+(adoption) waits for this branch to be accepted, or for the user to authorize
+building on it before acceptance.
+
+RELEVANT MATERIAL
+design/working/browser-frontend-checkpoint-01.txt (this request's design)
+design/working/browser-frontend-implementation-plan-01.txt (file-level plan)
+design/working/memory-value-system-flow-checkpoint-11.txt sections 39-61, 107,
+  142-155
+ai-workflow/mail/integration/inbox/2026-11-27-ai-buddy-long-lived-application-execution.txt
+  (G1; the delivery seam makes G1(c) concrete, checkpoint 3.03)
+first-party/observationBridge, tools/observationViewer (G-01/G-02 precedent)
+Platform ref examined: Tertalis/Tertalis integration
+  de124f3be8f1b6c025ea528e5470b0d14efdde42

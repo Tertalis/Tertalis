@@ -113,7 +113,15 @@ CURRENT OBJECTIVE
    outputs once unless edited; save policy at message-completion, lifecycle
    and exit boundaries; managed llama.cpp mode; rename host/driver.py to avoid
    confusion with LLM drivers.
-3. Stage 7 behavioural experimentation on the running system (outside the
+3. Browser secondary UI: design agreed in
+   design/working/browser-frontend-checkpoint-01.txt; platform steps 2-4
+   accepted and merged into Tertalis integration at
+   3424d43402086f13505e1f773178fdd6792dcabf (2026-11-27). Independent
+   Windows checks: 1813 tests, kit Node 17/17, five-View/restart Chromium smoke.
+   Review: knowledge/browser-frontend-integration-2026-11-27.txt.
+   AI Buddy step 5 remains separate Application-owned work; no source adoption
+   was performed and its accepted platform baseline has not advanced.
+4. Stage 7 behavioural experimentation on the running system (outside the
    materialization scope).
 
 OPEN COORDINATION
@@ -123,6 +131,8 @@ Outgoing (ai-workflow/mail/integration/inbox/):
 - 2026-11-27-ai-buddy-savebundle-generation-growth.txt (G7, request)
 - 2026-11-27-ai-buddy-long-lived-application-execution.txt (G1, request)
 - 2026-11-27-ai-buddy-platform-pressure-findings.txt (G2-G6, finding)
+- Browser UI request reviewed/archived; platform accepted at 3424d434.
+  AI Buddy frontend integration and pinned-platform adoption remain pending.
 Incoming: the four availability notices (2026-09-19 x2, 2026-11-03 x2) were
 reviewed and archived on 2026-11-27; their durable content is reflected above.
 No platform adoption is requested or authorized by any of them.

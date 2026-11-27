@@ -1,3 +1,22 @@
+BROWSER FRONTEND - ACCEPTED LOCALLY, 2026-11-27
+------------------------------------------------
+User authorized integration checking, necessary commits and merging the
+browser-frontend implementation when verification passed.
+Implementation: 4e1be3d33fb8042a7643f196d4b6b1c5f295c1cc.
+Integrated platform: 3424d43402086f13505e1f773178fdd6792dcabf.
+Prior integration: a476bced (remote coordination updates preserved).
+Independent Windows Python 3.15: 1813 tests pass, no skips; affected
+Python Ruff checks/native-tool verification pass; Node kit 17/17;
+Chromium five-View, sixth-View rejection, conflict and actual restart smoke
+pass. Four integration defects corrected before acceptance.
+Provides: CodeEntry formats/roles, frontend.kit, frontend.host and shared
+loopback HTTP; viewer/observation bridge regression coverage passes.
+Consumer impact: stricter manifests, shared HTTP/viewer helper extraction,
+optional frontend Packs and bounded logs/actions. AI Buddy adoption and
+its UI remain separate work; no Application baseline advanced.
+Evidence/limits: knowledge/browser-frontend-integration-2026-11-27.txt.
+No remote push performed by this check. No additional platform work assigned.
+
 TERTALIS PLATFORM INTEGRATION - CURRENT ROUTING
 ================================================
 Updated: 2026-11-27

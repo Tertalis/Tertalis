@@ -1,0 +1,93 @@
+BROWSER FRONTEND INTEGRATION CHECK - 2026-11-27
+==============================================
+Repository: Tertalis/Tertalis, local integration branch.
+User requested an integration check, authorized necessary commits, and stated
+that the goal was merging browser-frontend into integration if correct.
+
+REFS AND SOURCE BOUNDARY
+-----------------------
+Initial branch HEAD: 253236de07a894ee250d99f4ee39cc23b2c9b14f,
+with staged and unstaged browser frontend implementation.
+Implementation and review fixes: 4e1be3d33fb8042a7643f196d4b6b1c5f295c1cc.
+Fetched integration target: a476bced; intervening commits only changed
+coordination/documentation, including removal of docs/test.txt.
+Merge: 3424d43402086f13505e1f773178fdd6792dcabf.
+The merged backend/first-party/tests/scripts/tools/pyproject source projection
+is identical to the independently tested implementation commit.
+No Application-exclusive files were imported. No consumer repository or
+accepted platform baseline was changed. Branch/history identity preserved.
+No remote push performed by this task. browser-frontend remains available.
+
+REPRODUCED FINDINGS AND CORRECTIONS
+----------------------------------
+1. Snapshot recovery race: an Emit at p=1 arrived while a snapshot captured
+   at p=0 was in flight. Recovery coalescing discarded the only new update;
+   client stayed at p=0 indefinitely. Session now remembers the extra gap,
+   schedules another snapshot, and retries failed snapshots. Close cancels
+   scheduled recovery; obsolete run responses cannot replace current state.
+2. Restart uncertainty: a restarted host rotates credentials. Old tabs get
+   HTTP 401 before receiving a new run event; accepted actions stayed pending
+   forever. Terminal stream failures now settle pending actions as unknown.
+   Credential rotation intentionally requires a fresh launch link.
+3. Pending bound: with maxInbox=2/idempotency=4, repeatedly submit/drain left
+   20 pending records. Pending actions now count toward the retention limit;
+   admission returns busy when full. Settled records can be evicted without
+   forgetting an older pending id. Limits must be positive integers.
+4. Snapshot size: nine individually valid 256 KiB log values produced a
+   2359369-byte snapshot; kit permits only 2097152 bytes. Host logs now retain
+   at most 1 MiB of encoded tail items, as well as their item-count limit.
+   A real HTTP regression proves the snapshot fits and preserves position.
+Cached Results are also frozen at resolve time so later owner mutation cannot
+make duplicate replies disagree with the authoritative invocation log.
+
+ACTUAL VERIFICATION
+-------------------
+Windows; repository Python 3.15.0b4; Node v23.11.0;
+Chromium 152.0.7977.65; Ruff 0.17.4; ty 0.0.99.
+Commands from repository root:
+  python-embedded/python.exe -X frozen_modules=off -m pytest tests -q
+    Original: 1807 passed in 19.60s.
+    Corrected: 1813 passed in 18.94s, zero skips/failures.
+    Includes frontend kit and observation viewer Node wrappers.
+  node --test tests/first_party/frontendKit/kit.test.mjs
+    17/17 passed (14 original plus three session recovery regressions).
+  python-embedded/python.exe -X frozen_modules=off scripts/verify_tools.py
+    PASS: native Ruff and ty versions and isolated sample recipes verified.
+    This is tool verification, not a repository-wide type-check claim.
+  python-embedded/Scripts/ruff.exe check <affected Python files/directories>
+    PASS: runtime/context/transport, frontend host, bridge, viewer server,
+    and their affected/new Python tests; repository-configured rule set.
+  git diff --check HEAD
+    PASS before commit.
+  python-embedded/python.exe -X frozen_modules=off
+    tests/first_party/frontendHost/smoke.py --playwright <temporary package>
+    --browser W:/Tools/Browsers/Chromium/bin/chrome.exe --output <temporary>
+    Original three-View smoke PASS. Expanded corrected smoke PASS:
+    fragment removal, no storage/cookies, echo Result, two-View conflict,
+    five simultaneous Views receiving updates, sixth-View cap, actual
+    same-port host restart with new run id/credential, accepted pending
+    action -> unknown, old Views -> unauthorized, clean fixture shutdown.
+The embedded interpreter warns about its standard-library home directory;
+all checks above nevertheless completed successfully.
+
+RETENTION, LIMITS AND CONSUMER IMPACT
+-----------------------------------
+Deterministic regression tests and the expanded smoke harness are tracked.
+Raw probes/screenshots/result JSON and playwright-core installation remain
+outside the repository under the host temporary directory; they are
+transient diagnostics, not promised durable artifacts. This record retains
+the relevant observed values and exact source identity.
+
+Platform steps 2-4 accepted for the bounded local single-user browser slice.
+The token-fragment launch choice remains the explicitly recorded design
+owner deviation; no new authority model is claimed. Every served browser
+module must be declared. Closed kinds/unknown CodeEntry key rejection can
+require adaptation for external manifests. Viewer/bridge tests passed after
+helper extraction. Pending limits can return busy; log tails truncate by
+bytes or count; duplicate handling covers retained invocation ids only.
+
+AI Buddy UI/loop integration, real llama.cpp/Application verification,
+managed execution adoption, and authoritative design reconciliation remain
+separate work. This check does not claim those consumers are integrated.
+No benchmark, exhaustive security audit, repository-wide static typing,
+production distribution or formal release-version guarantee is claimed.

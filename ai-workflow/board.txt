@@ -17,6 +17,13 @@ No prior 'import latest platform' direction in this historical projection is
 automatic adoption authority. Application upgrades require explicit Integrator
 scope and accepted SHA-based verification.
 
+BROWSER FRONTEND - 2026-11-27
+DONE Platform steps 2-4 accepted at 3424d434 after independent Windows checks
+and four integration corrections; 1813 tests and five-View/restart smoke pass.
+NOW Bounded platform integration complete locally; no remote push performed.
+NEXT Separately authorized AI Buddy adoption/UI; no consumer upgrade implied.
+Evidence: knowledge/browser-frontend-integration-2026-11-27.txt.
+
 READING THIS BOARD
 ------------------
 This is a concise navigation/progress projection, not a new task authority or an
