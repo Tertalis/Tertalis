@@ -1,3 +1,25 @@
+TERTALIS EVIL-ANALYSIS - CURRENT MIGRATION STATE
+==================================================
+Updated: 2026-11-27
+Working repository: EnterTheNameHere/Evil-Analysis
+Development branch: integration
+Audited Application HEAD: 3b144b0eca9b8ad808b3eb89a0edc3cc77d4e846
+Canonical coordination: Tertalis/Tertalis integration.
+Global freeze lifted 2026-11-27; normal admission and ownership apply.
+38 application-exclusive files. Historical user-reported working application and green tests remain evidence; external data not available for fresh verification.
+Shared platform files match the audited Tertalis source projection at
+3f85c867c45e1ccc07b31722572071ef3f4909aa, excluding repository-specific
+onboarding and centralized documentation/coordination. This is source
+observation only, not an accepted platform SHA or compatibility test.
+Retain earlier accepted evidence; verify exact migrated baseline provenance
+before recording a new accepted pairing. No automatic platform adoption.
+Earlier repository/branch routing, freeze and synchronization instructions
+below are historical; current canonical protocol governs. Earlier capability
+observations are tied to their recorded baselines, not fresh verification.
+
+HISTORICAL WORKSTREAM RECORD
+----------------------------
+
 ACTANT INTEGRATION STATE - EVIL BIRTHDAY ANALYSIS APPLICATION
 
 Integration availability / migration dependency (2026-11-03)
