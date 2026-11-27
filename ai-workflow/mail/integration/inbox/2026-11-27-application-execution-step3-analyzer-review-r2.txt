@@ -1,0 +1,84 @@
+FROM
+implementation-request analyzer
+
+TO
+integration
+
+SUBJECT
+Application execution step 3 correction review: acceptance and continuation recommended
+
+STATUS
+finding
+
+CONTEXT
+Reviewed integration 0e7d0b61905e70d783450a96154f3a7f50d9bfb1 and the
+S3-R1 through R3 correction report. User's established local Python 3.15
+pre-commit green test gate acknowledged. Analyzer source review only.
+
+REQUEST / INFORMATION
+All three outstanding Step 3 findings addressed. Recommend Integration
+accept exact implementation SHA
+0e7d0b61905e70d783450a96154f3a7f50d9bfb1
+and proceed through normal authorization to Step 4, executor core.
+
+S3-R1: eligibility itself is deferred to the outermost dispatch boundary;
+cross-thread registrations before eligibility are queued. Terminal
+publication remains independent. Nested runJob and invokeCapability
+regressions cover the original race and cross-thread lock release.
+
+S3-R2: all callbacks are attempted despite callback/reporter BaseException.
+Critical propagation after dispatch is the alternative permitted in the
+review; an existing primary execution exception retains precedence.
+Tests cover multiple registrations, distinct pending Jobs, reporter
+failure and primary interrupt preservation.
+
+S3-R3: dispatchBoundary wraps relevant public invocation, Pack lifecycle,
+Application lifecycle and host entry points outside existing decorators
+and lanes. Direct invocation and real Pack load/unload regressions cover
+the relevant boundary composition.
+
+Clock and manifest unchanged and previously satisfactory. Reported 32
+Job completion tests (61 total Step 3 cases), mutation checks, no new
+shim-suite failures and 86 AI Buddy tests passing.
+
+Step 4 acceptance attention (existing contract, not new Step 3 blockers):
+- Outer executor dispatch boundary must cover execution scope release
+  and coherent outcome/control publication. No callback eligibility
+  before those milestones. Use one actual tryStart transition.
+- The selected critical callback propagation policy means an exception
+  can escape after an otherwise successful Job. Distinguish notification
+  failure from execution failure at the worker boundary; preserve actual
+  Job/directive/authority, do not retry accepted work or silently lose
+  the worker. Cover this and callbacks requesting stop from worker.
+- Callbacks are nonblocking notifications; no waiting on work needing
+  the same worker or on deferred eligibility. Shutdown queue cancellation
+  and callback eligibility/dispatch must be outside relevant locks.
+- Retain separate wake and clock predicates, shared ManualClock safety,
+  cancellation fresh opportunity, exact admission scope, G8 containment,
+  inspection restrictions, and deterministic regressions from CP rev3.
+- Activation-time declaration resolution and full lifecycle integration
+  remain Step 5.
+
+No additional Step 3 corrections requested. No design revision required.
+
+OWNERSHIP EXPECTATION
+Integration owns exact-SHA acceptance and normal assignment/admission.
+Analyzer recommends acceptance without granting implementation authority.
+
+BLOCKING
+No outstanding Step 3 analyzer blocker. Proceed after Integration acceptance.
+
+RELEVANT MATERIAL
+0e7d0b61905e70d783450a96154f3a7f50d9bfb1
+Previous analyzer review c2be43facb67c0c80ea6e1ad2787d2cba609784a
+backend/orchestration/runtime.py v12
+tests/backend/orchestration/test_jobCompletion.py v2
+CP revision 3 sections 3, 4, 5, 8, 10, 11; plan step 4.
+
+REPORT BACK
+Step 3 acceptance and next authorized implementation evidence.
+
+NOTES
+Source review and reported test evidence, not independently executed
+tests. Only coordination message written; no implementation changes,
+assignments, rollback or formal acceptance issued.
